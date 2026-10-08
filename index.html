@@ -332,7 +332,7 @@ function stats(g) {
 }
 
 /* ---------- guardar ---------- */
-function espelho() { if (S.mode === 'local') LS.set('pontinho.partidas', S.games); }
+function espelho() { if (S.mode === 'local') LS.set('pontinho.partidas', S.games.filter(function (g) { return !g.exemplo; })); }
 function commit(g) {
   g.atualizadaEm = new Date().toISOString();
   var i = S.games.findIndex(function (x) { return x.id === g.id; });
@@ -368,12 +368,9 @@ function iniciar() {
         return;
       } catch (e) { db = null; }
     }
-    S.mode = 'local'; S.games = LS.get('pontinho.partidas') || [];
-    /* um exemplo carregado antes fica com os nomes atuais do exemplo */
-    S.games.forEach(function (g) {
-      if (g.id !== 'exemplo' || !g.exemplo) return;
-      (g.jogadores || []).forEach(function (j) { var e = EXEMPLO.jogadores.find(function (x) { return x.id === j.id; }); if (e) j.nome = e.nome; });
-    });
+    S.mode = 'local';
+    /* a partida de exemplo é só demonstração: não fica guardada no aparelho */
+    S.games = (LS.get('pontinho.partidas') || []).filter(function (g) { return !g.exemplo; });
     espelho(); S.loaded = true; renderView();
   });
 }
@@ -401,7 +398,10 @@ function cabecalhoPartida(g, st) {
 function viewPlacar(g) {
   if (!g) return semPartida();
   var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st);
-  if (g.exemplo) h += '<p class="note">Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Comece a de vocês na aba Partidas.</p>';
+  if (g.exemplo) h += S.mode === 'local'
+    ? '<div class="note stack"><p>Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Ela não fica guardada e some quando você fechar o site.</p>' +
+      '<div class="rowline"><button class="btn primary" data-act="nova">Começar uma partida</button><button class="btn" data-act="fechar-exemplo">Fechar o exemplo</button></div></div>'
+    : '<p class="note">Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Comece a de vocês na aba Partidas.</p>';
   if (g.encerradaEm && st.R) {
     var venc = st.ordem.filter(function (p) { return p.posAtual === 1; }).map(function (p) { return p.nome; });
     h += '<p class="note"><strong>' + esc(lista(venc)) + '</strong> ' + (venc.length > 1 ? 'ganharam' : 'ganhou') + ' com ' + plural(st.ordem[0].total, 'ponto', 'pontos') + '.</p>';
@@ -1019,6 +1019,7 @@ function acao(a, t) {
       if (limpos.length < 2) { d.erro = 'Coloque o nome de pelo menos dois jogadores.'; renderSheet(); break; }
       var novo = { id: uid('p'), nome: d.nome.trim() || 'Partida de ' + dataCurta(new Date().toISOString()), criadaEm: new Date().toISOString(), encerradaEm: null,
         jogadores: limpos.map(function (n, i) { return { id: 'j' + (i + 1), nome: n, desde: 0, base: 0 }; }), rodadas: [] };
+      if (S.mode === 'local') S.games = S.games.filter(function (x) { return !x.exemplo; });
       escolher(novo.id); S.tab = 'placar'; S.draft = null; renderSheet(); commit(novo); break;
     }
     case 'jogador': S.draft = { tipo: 'jogador', nome: '', base: '0', erro: '' }; renderSheet('nj-nome'); break;
@@ -1029,6 +1030,7 @@ function acao(a, t) {
       S.draft = null; renderSheet(); commit(g2); break;
     }
     case 'exemplo': { var ex = clone(EXEMPLO); ex.criadaEm = new Date().toISOString(); escolher(ex.id); S.tab = 'placar'; commit(ex); break; }
+    case 'fechar-exemplo': S.games = S.games.filter(function (x) { return !x.exemplo; }); S.gameId = null; S.chartRound = null; S.tab = 'placar'; renderView(); break;
     case 'rodada': abrirRodada(null); break;
     case 'editar': abrirRodada(Number(t.getAttribute('data-idx'))); break;
     case 'bateu': {
