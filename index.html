@@ -255,7 +255,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
       <button class="tab" id="tab-rodadas" data-act="tab" data-tab="rodadas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM5 9h14M5 14h14M10 4v16"></path></svg>Rodadas</button>
       <button class="tab" id="tab-stats" data-act="tab" data-tab="stats" aria-label="Estatísticas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9M4 21h16"></path></svg><span class="longo">Estatísticas</span><span class="curto" aria-hidden="true">Estat.</span></button>
       <button class="tab" id="tab-partidas" data-act="tab" data-tab="partidas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v13H4zM8 7V4h12v13h-5"></path></svg>Partidas</button>
-      <a class="tab" id="tab-regras" href="regras.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6"></path></svg>Regras</a>
+      <a class="tab" id="tab-regras" href="regras/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6"></path></svg>Regras</a>
     </div>
   </nav>
 </div>
@@ -423,7 +423,7 @@ function viewInicial() {
     '<h2>Placar do Pontinho</h2><p class="muted">Marque os pontos de cada rodada e acompanhe as estatísticas da partida.</p><div class="home-acoes">';
   if (aberta) h += '<button class="btn primary wide" data-act="continuar" data-id="' + esc(aberta.id) + '">Continuar a partida</button><button class="btn wide" data-act="nova">Nova partida</button>';
   else h += '<button class="btn primary wide" data-act="nova">Começar uma partida</button>';
-  h += '<a class="btn wide" href="regras.html">Ver as regras</a>';
+  h += '<a class="btn wide" href="regras/">Ver as regras</a>';
   if (S.mode === 'local' && !o.some(function (x) { return x.exemplo; })) h += '<button class="btn quiet wide" data-act="exemplo">Ver uma partida de exemplo</button>';
   return h + '</div></section>';
 }
