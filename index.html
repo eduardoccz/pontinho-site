@@ -79,7 +79,8 @@ h3 { font-family: var(--display); font-weight: 800; font-size: 18px; line-height
 .suits { display: flex; gap: 3px; }
 .suits svg { width: 14px; height: 14px; }
 .suit-b { fill: var(--ink); } .suit-r { fill: var(--red); }
-.top-sub { min-width: 0; text-align: right; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.top-sub { flex: 1; min-width: 0; text-align: right; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.top-link { flex: none; min-height: 44px; display: inline-flex; align-items: center; padding-inline: 6px; font-weight: 700; color: var(--green); text-underline-offset: 3px; }
 
 main { flex: 1; min-height: 0; overflow-y: auto; }
 main:focus { outline: none; }
@@ -219,6 +220,7 @@ tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
         </span>
       </div>
       <div class="top-sub" id="top-sub"></div>
+      <a class="top-link" href="regras.html">Regras</a>
     </div>
   </header>
   <main id="view" tabindex="-1"></main>

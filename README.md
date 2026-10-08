@@ -2,7 +2,7 @@
 
 Placar para o jogo de baralho Pontinho, com as regras da casa: coringa 20, ás 15, K 13, Q 12, J 11 e as demais cartas valem o número.
 
-É um site estático de um arquivo só (`index.html`), sem build e sem servidor. As partidas ficam guardadas no navegador de cada aparelho (`localStorage`).
+É um site estático de duas páginas, o placar (`index.html`) e as regras (`regras.html`), sem build e sem servidor. As partidas ficam guardadas no navegador de cada aparelho (`localStorage`).
 
 ## Publicar no GitHub Pages
 
@@ -17,7 +17,8 @@ Na primeira vez:
 
 ## Arquivos
 
-- `index.html`: a página inteira (estilos e código juntos).
+- `index.html`: o placar (estilos e código juntos).
+- `regras.html`: as regras da casa, com exemplos em cartas. O botão de imprimir gera a folha A4 frente e verso.
 - `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `icon.svg`: ícones e dados para "Adicionar à tela inicial".
 - `CNAME`: o domínio personalizado.
 - `.nojekyll`: faz o GitHub Pages servir os arquivos como estão, caso o deploy seja feito por branch.
