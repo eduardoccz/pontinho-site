@@ -92,15 +92,27 @@ main:focus { outline: none; }
 .view { display: flex; flex-direction: column; gap: 20px; padding-block: 20px 28px; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
 .rowline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.logo { width: 200px; max-width: 60%; height: auto; align-self: center; margin-bottom: 6px; }
+.home { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; padding-top: 4px; }
+.home .logo { width: 220px; max-width: 62%; height: auto; }
+.home p { max-width: 34ch; }
+.home-acoes { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.inline input { min-height: 48px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--surface); }
+@media (max-height: 620px) { .home .logo { width: 150px; } .view { gap: 14px; padding-block: 14px 20px; } }
+@media (max-width: 380px) { .home .logo { width: 140px; } }
+@media (max-width: 340px) { .home .logo { width: 116px; } }
 
 .tabs { background: var(--surface); border-top: 1px solid var(--line); }
-.tabs .wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding-block: 6px; }
-.tab { min-height: 52px; border: 0; background: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; color: var(--muted); }
+.tabs .wrap { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; padding-block: 6px; padding-inline: 8px; }
+.tab { min-width: 0; min-height: 52px; padding: 0 1px; border: 0; background: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; line-height: 1.2; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.tab .longo { display: none; }
+@media (max-width: 359px) { .tab { font-size: 11px; } }
+@media (min-width: 560px) { .tab { font-size: 13px; } .tab .longo { display: inline; } .tab .curto { display: none; } .tabs .wrap { gap: 4px; padding-inline: 16px; } }
 .tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .tab[aria-current="page"] { color: var(--green); font-weight: 700; background: var(--green-tint); }
+@media (max-height: 480px) { /* celular deitado */ .top .wrap { padding-block: 6px; } .brand-name { font-size: 22px; } .tabs .wrap { padding-block: 4px; }
+  .tab { flex-direction: row; gap: 6px; min-height: 40px; } .tab svg { width: 18px; height: 18px; } .tab .longo { display: none; } .tab .curto { display: inline; } .home .logo { width: 110px; } }
 
-.btn { min-height: 48px; padding: 10px 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.btn { min-height: 48px; padding: 10px 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 .btn.primary { background: var(--green); border-color: var(--green); color: var(--on-green); }
 .btn.danger { background: var(--red); border-color: var(--red); color: var(--on-red); }
 .btn.quiet { border-color: var(--line); font-weight: 400; }
@@ -226,16 +238,17 @@ tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
         </span>
       </div>
       <div class="top-sub" id="top-sub"></div>
-      <a class="top-link" href="regras.html">Regras</a>
     </div>
   </header>
   <main id="view" tabindex="-1"></main>
   <nav class="tabs" aria-label="Seções do placar">
     <div class="wrap">
+      <button class="tab" id="tab-inicial" data-act="tab" data-tab="inicial"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6"></path></svg>Inicial</button>
       <button class="tab" id="tab-placar" data-act="tab" data-tab="placar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"></path></svg>Placar</button>
       <button class="tab" id="tab-rodadas" data-act="tab" data-tab="rodadas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM5 9h14M5 14h14M10 4v16"></path></svg>Rodadas</button>
-      <button class="tab" id="tab-stats" data-act="tab" data-tab="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9M4 21h16"></path></svg>Estatísticas</button>
+      <button class="tab" id="tab-stats" data-act="tab" data-tab="stats" aria-label="Estatísticas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9M4 21h16"></path></svg><span class="longo">Estatísticas</span><span class="curto" aria-hidden="true">Estat.</span></button>
       <button class="tab" id="tab-partidas" data-act="tab" data-tab="partidas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v13H4zM8 7V4h12v13h-5"></path></svg>Partidas</button>
+      <a class="tab" id="tab-regras" href="regras.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6"></path></svg>Regras</a>
     </div>
   </nav>
 </div>
@@ -270,7 +283,7 @@ var LS = {
 };
 
 /* ---------- estado ---------- */
-var S = { games: [], loaded: false, mode: 'loading', tab: 'placar', gameId: null, sheet: null, draft: null, chartRound: null, confirm: null, saveErr: false, syncErr: false, filtro: { tipo: 'todas', de: '', ate: '' }, renome: '' };
+var S = { games: [], loaded: false, mode: 'loading', tab: 'inicial', gameId: null, sheet: null, draft: null, chartRound: null, confirm: null, saveErr: false, syncErr: false, filtro: { tipo: 'todas', de: '', ate: '' }, renome: '' };
 var db = null;
 var SOMENTE_LOCAL = true;
 var EXEMPLO = {"nome":"Partida de exemplo","exemplo":true,"criadaEm":"2026-10-08T19:00:00.000Z","encerradaEm":null,"atualizadaEm":"2026-10-08T19:00:00.000Z","jogadores":[{"id":"j1","nome":"Alice","desde":0,"base":0},{"id":"j2","nome":"Bob","desde":0,"base":0},{"id":"j3","nome":"Charlie","desde":0,"base":0},{"id":"j4","nome":"Daisy","desde":0,"base":0}],"rodadas":[{"id":"r1","bateu":"j2","em":"2026-10-08T19:05:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"7":1,"5":1},"manual":false},"j3":{"pontos":34,"cartas":{"K":1,"Q":1,"9":1},"manual":false},"j4":{"pontos":19,"cartas":{"A":1,"4":1},"manual":false}}},{"id":"r2","bateu":"j2","em":"2026-10-08T19:12:00.000Z","maos":{"j1":{"pontos":14,"cartas":{"J":1,"3":1},"manual":false},"j3":{"pontos":28,"cartas":{"JK":1,"8":1},"manual":false},"j4":{"pontos":14,"cartas":{"6":2,"2":1},"manual":false}}},{"id":"r3","bateu":"j4","em":"2026-10-08T19:20:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"10":1,"2":1},"manual":false},"j2":{"pontos":9,"cartas":{"5":1,"4":1},"manual":false},"j3":{"pontos":20,"cartas":{"K":1,"7":1},"manual":false}}},{"id":"r4","bateu":"j1","em":"2026-10-08T19:28:00.000Z","maos":{"j2":{"pontos":48,"cartas":{"JK":1,"A":1,"K":1},"manual":false},"j3":{"pontos":7,"cartas":{"4":1,"3":1},"manual":false},"j4":{"pontos":21,"cartas":{"Q":1,"9":1},"manual":false}}},{"id":"r5","bateu":"j1","em":"2026-10-08T19:35:00.000Z","maos":{"j2":{"pontos":36,"cartas":{"K":1,"Q":1,"J":1},"manual":false},"j3":{"pontos":5,"cartas":{"3":1,"2":1},"manual":false},"j4":{"pontos":20,"cartas":{"8":1,"7":1,"5":1},"manual":false}}},{"id":"r6","bateu":"j1","em":"2026-10-08T19:43:00.000Z","maos":{"j2":{"pontos":25,"cartas":{"A":1,"10":1},"manual":false},"j3":{"pontos":6,"cartas":{"6":1},"manual":false},"j4":{"pontos":24,"cartas":{"J":1,"9":1,"4":1},"manual":false}}},{"id":"r7","bateu":"j3","em":"2026-10-08T19:50:00.000Z","maos":{"j1":{"pontos":17,"cartas":{"9":1,"8":1},"manual":false},"j2":{"pontos":22,"cartas":{"Q":1,"7":1,"3":1},"manual":false},"j4":{"pontos":30,"cartas":{"A":2},"manual":false}}},{"id":"r8","bateu":"j3","em":"2026-10-08T19:58:00.000Z","maos":{"j1":{"pontos":18,"cartas":{"K":1,"5":1},"manual":false},"j2":{"pontos":24,"cartas":{"10":2,"4":1},"manual":false},"j4":{"pontos":9,"cartas":{"7":1,"2":1},"manual":false}}}],"id":"exemplo"};
@@ -388,8 +401,27 @@ function avisos() {
   if (S.syncErr) h += '<p class="note warn">O placar salvo não está respondendo agora. Recarregue a página para tentar de novo.</p>';
   return h;
 }
+var ABAS = ['inicial', 'placar', 'rodadas', 'stats', 'partidas'];
+function abaDoEndereco() {
+  var h = (location.hash || '').replace('#', ''); if (h === 'estatisticas') h = 'stats';
+  return ABAS.indexOf(h) >= 0 ? h : null;
+}
+function marcarEndereco() {
+  var h = '#' + (S.tab === 'stats' ? 'estatisticas' : S.tab);
+  try { if (location.hash !== h) history.replaceState(null, '', h); } catch (e) { /* sem histórico: segue sem endereço */ }
+}
+function viewInicial() {
+  var o = ordenadas(), aberta = o.find(function (x) { return !x.encerradaEm && !x.exemplo; });
+  var h = '<section class="home"><img class="logo" src="logo.webp" width="220" height="220" alt="Emblema do Pontinho: pontos e regras">' +
+    '<h2>Placar do Pontinho</h2><p class="muted">Marque os pontos de cada rodada e acompanhe as estatísticas da partida.</p><div class="home-acoes">';
+  if (aberta) h += '<button class="btn primary wide" data-act="continuar" data-id="' + esc(aberta.id) + '">Continuar a partida</button><button class="btn wide" data-act="nova">Nova partida</button>';
+  else h += '<button class="btn primary wide" data-act="nova">Começar uma partida</button>';
+  h += '<a class="btn wide" href="regras.html">Ver as regras</a>';
+  if (S.mode === 'local' && !o.some(function (x) { return x.exemplo; })) h += '<button class="btn quiet wide" data-act="exemplo">Ver uma partida de exemplo</button>';
+  return h + '</div></section>';
+}
 function semPartida() {
-  return '<section class="stack"><img class="logo" src="logo.webp" width="200" height="200" alt="Emblema do Pontinho: pontos e regras"><h2>Nenhuma partida ainda</h2>' +
+  return '<section class="stack"><h2>Nenhuma partida ainda</h2>' +
     '<p>Cadastre quem está na mesa e, a cada vez que alguém bater, lance as cartas que sobraram na mão dos outros. O placar, o bloco de rodadas e as estatísticas aparecem aqui.</p>' +
     '<div class="rowline"><button class="btn primary" data-act="nova">Começar uma partida</button>' +
     (S.mode === 'local' ? '<button class="btn" data-act="exemplo">Ver uma partida de exemplo</button>' : '') + '</div></section>';
@@ -548,10 +580,10 @@ function viewPartidas() {
 
 function renderView() {
   var g = cur(), v = $('#view'), topo = $('#top-sub');
-  ['placar', 'rodadas', 'stats', 'partidas'].forEach(function (t) { var b = $('#tab-' + t); if (S.tab === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-  topo.textContent = g ? g.nome : '';
+  ABAS.forEach(function (t) { var b = $('#tab-' + t); if (S.tab === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  topo.textContent = (g && S.tab !== 'inicial') ? g.nome : '';
   if (!S.loaded) { v.innerHTML = '<div class="wrap view"><p class="muted">Abrindo o placar…</p></div>'; return; }
-  var corpo = S.tab === 'placar' ? viewPlacar(g) : S.tab === 'rodadas' ? viewRodadas(g) : S.tab === 'stats' ? viewStats(g) : viewPartidas();
+  var corpo = S.tab === 'inicial' ? viewInicial() : S.tab === 'placar' ? viewPlacar(g) : S.tab === 'rodadas' ? viewRodadas(g) : S.tab === 'stats' ? viewStats(g) : viewPartidas();
   v.innerHTML = '<div class="wrap view">' + avisos() + corpo + '</div>';
   if (S.tab === 'stats') desenhar();
 }
@@ -1012,7 +1044,8 @@ function fecharFolha() { S.draft = null; S.confirm = null; limparExp(); renderSh
 function acao(a, t) {
   var g = cur(), d = S.draft, id = t.getAttribute('data-id');
   switch (a) {
-    case 'tab': S.tab = t.getAttribute('data-tab'); S.confirm = null; renderView(); $('#view').scrollTop = 0; break;
+    case 'tab': S.tab = t.getAttribute('data-tab'); S.confirm = null; marcarEndereco(); renderView(); $('#view').scrollTop = 0; break;
+    case 'continuar': escolher(id); S.tab = 'placar'; marcarEndereco(); renderView(); $('#view').scrollTop = 0; break;
     case 'nova': {
       var ult = ordenadas().find(function (x) { return !x.exemplo; });
       var nomes = ult ? ult.jogadores.map(function (j) { return j.nome; }) : ['', '', '', ''];
@@ -1026,7 +1059,7 @@ function acao(a, t) {
       var novo = { id: uid('p'), nome: d.nome.trim() || 'Partida de ' + dataCurta(new Date().toISOString()), criadaEm: new Date().toISOString(), encerradaEm: null,
         jogadores: limpos.map(function (n, i) { return { id: 'j' + (i + 1), nome: n, desde: 0, base: 0 }; }), rodadas: [] };
       if (S.mode === 'local') S.games = S.games.filter(function (x) { return !x.exemplo; });
-      escolher(novo.id); S.tab = 'placar'; S.draft = null; renderSheet(); commit(novo); break;
+      escolher(novo.id); S.tab = 'placar'; marcarEndereco(); S.draft = null; renderSheet(); commit(novo); break;
     }
     case 'jogador': S.draft = { tipo: 'jogador', nome: '', base: '0', erro: '' }; renderSheet('nj-nome'); break;
     case 'nj-criar': {
@@ -1035,8 +1068,8 @@ function acao(a, t) {
       g2.jogadores.push({ id: 'j' + n, nome: nm, desde: g2.rodadas.length, base: Math.max(0, Math.floor(Number(d.base) || 0)) });
       S.draft = null; renderSheet(); commit(g2); break;
     }
-    case 'exemplo': { var ex = clone(EXEMPLO); ex.criadaEm = new Date().toISOString(); escolher(ex.id); S.tab = 'placar'; commit(ex); break; }
-    case 'fechar-exemplo': S.games = S.games.filter(function (x) { return !x.exemplo; }); S.gameId = null; S.chartRound = null; S.tab = 'placar'; renderView(); break;
+    case 'exemplo': { var ex = clone(EXEMPLO); ex.criadaEm = new Date().toISOString(); escolher(ex.id); S.tab = 'placar'; marcarEndereco(); commit(ex); break; }
+    case 'fechar-exemplo': S.games = S.games.filter(function (x) { return !x.exemplo; }); S.gameId = null; S.chartRound = null; S.tab = 'inicial'; marcarEndereco(); renderView(); break;
     case 'rodada': abrirRodada(null); break;
     case 'editar': abrirRodada(Number(t.getAttribute('data-idx'))); break;
     case 'bateu': {
@@ -1123,7 +1156,7 @@ function acao(a, t) {
     case 'fechar': fecharFolha(); break;
     case 'encerrar': { var g5 = clone(g); g5.encerradaEm = new Date().toISOString(); commit(g5); break; }
     case 'reabrir': { var g6 = clone(g); g6.encerradaEm = null; commit(g6); break; }
-    case 'abrir': escolher(id); S.tab = 'placar'; renderView(); $('#view').scrollTop = 0; break;
+    case 'abrir': escolher(id); S.tab = 'placar'; marcarEndereco(); renderView(); $('#view').scrollTop = 0; break;
     case 'filtro': { S.filtro.tipo = t.getAttribute('data-f'); S.confirm = null; renderView(); var fb = document.getElementById('f-' + S.filtro.tipo); if (fb) fb.focus(); break; }
     case 'renomear': {
       var gr = S.games.find(function (x) { return x.id === id; }); S.confirm = 'renomear:' + id; S.renome = gr ? gr.nome : ''; renderView();
@@ -1176,6 +1209,8 @@ if (window.ResizeObserver) { new ResizeObserver(function () { if (S.tab === 'sta
 /* ---------- partida ---------- */
 function comecar(dados) {
   if (dados && dados.tab) S.tab = dados.tab;
+  S.tab = abaDoEndereco() || S.tab;
+  window.addEventListener('hashchange', function () { var a = abaDoEndereco(); if (a && a !== S.tab) { S.tab = a; S.confirm = null; renderView(); $('#view').scrollTop = 0; } });
   renderView(); iniciar();
 }
 var hot = window.claude && window.claude.hot;

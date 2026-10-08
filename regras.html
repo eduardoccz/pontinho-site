@@ -76,6 +76,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .abre-topo { display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 12px 28px; }
 .abre-texto { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .logo { flex: none; width: 200px; max-width: 60%; height: auto; }
+@media (max-width: 380px) { .logo { width: 130px; } }
+@media (max-width: 340px) { .logo { width: 110px; } }
 .lead { font-size: 20px; }
 .rowline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .btn { min-height: 48px; padding: 10px 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; text-decoration: none; cursor: pointer; }
@@ -145,7 +147,17 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .pontos .q strong { font-size: 15px; }
 .pontos .q b { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; }
 .pontos .q span { font-size: 15px; }
-.rodape { padding-block: 0 48px; display: flex; flex-direction: column; gap: 12px; }
+.rodape { padding-block: 0 120px; display: flex; flex-direction: column; gap: 12px; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabs .wrap { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; padding-block: 6px; padding-inline: 8px; }
+.tab { min-width: 0; min-height: 52px; padding: 0 1px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 12px; line-height: 1.2; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { color: var(--green); font-weight: 700; background: var(--green-tint); }
+.tab .longo { display: none; }
+@media (max-width: 359px) { .tab { font-size: 11px; } }
+@media (min-width: 560px) { .tab { font-size: 13px; } .tab .longo { display: inline; } .tab .curto { display: none; } .tabs .wrap { gap: 4px; padding-inline: 16px; } }
+@media (max-height: 480px) { .top .wrap { padding-block: 6px; } .brand-name { font-size: 22px; } .tabs .wrap { padding-block: 4px; }
+  .tab { flex-direction: row; gap: 6px; min-height: 40px; } .tab svg { width: 18px; height: 18px; } .tab .longo { display: none; } .tab .curto { display: inline; } .rodape { padding-bottom: 90px; } }
 .rodape .fio { border-top: 1px solid var(--line); padding-top: 20px; }
 
 .impressao { display: none; }
@@ -165,7 +177,6 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 <div class="tela">
 <header class="top"><div class="wrap">
 <a class="brand" href="./" aria-label="Pontinho: abrir o placar"><span class="brand-name">Pontinho</span><span class="suits" aria-hidden="true"><svg viewBox="0 0 24 24" class="suit-b"><path d="M12 2C8 7 3 10 3 14.2a4.3 4.3 0 0 0 7.6 2.4c-.2 2.2-1 3.8-2.6 5.4h8c-1.6-1.6-2.4-3.2-2.6-5.4a4.3 4.3 0 0 0 7.6-2.4C21 10 16 7 12 2z"></path></svg><svg viewBox="0 0 24 24" class="suit-r"><path d="M12 21C5 15 2 11.5 2 7.8a5 5 0 0 1 10-1.6a5 5 0 0 1 10 1.6C22 11.5 19 15 12 21z"></path></svg><svg viewBox="0 0 24 24" class="suit-b"><circle cx="12" cy="7" r="4.6"></circle><circle cx="6.6" cy="13.6" r="4.6"></circle><circle cx="17.4" cy="13.6" r="4.6"></circle><path d="M12 11c0 5-1.4 8.4-3.6 11h7.2C13.4 19.4 12 16 12 11z"></path></svg><svg viewBox="0 0 24 24" class="suit-r"><path d="M12 2l8 10-8 10-8-10z"></path></svg></span></a>
-<a class="top-link" href="./">Placar</a>
 </div></header>
 
 <main class="wrap doc">
@@ -177,7 +188,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 </div>
 <img class="logo" src="logo.webp" width="200" height="200" alt="Emblema do Pontinho: pontos e regras">
 </div>
-<div class="rowline"><button class="btn primary" type="button" data-imprimir><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"></path></svg>Imprimir ou salvar em PDF</button><a class="btn" href="./">Abrir o placar</a></div>
+<div class="rowline"><button class="btn primary" type="button" data-imprimir><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"></path></svg>Imprimir ou salvar em PDF</button></div>
 <p class="muted small">A impressão sai numa folha A4, frente e verso, com as mesmas regras desta página. Na tela de impressão, use papel A4 e escala de 100%.</p>
 <nav class="indice" aria-label="Nesta página">
 <a href="#objetivo">O objetivo</a><a href="#comecar">Para começar</a><a href="#vez">Na sua vez</a><a href="#queimar">Queimar a primeira carta</a><a href="#jogos">Jogos que valem</a><a href="#lixo">Pegar do lixo e avançar</a><a href="#encaixar">Encaixar</a><a href="#pontos">Pontos</a>
@@ -293,7 +304,15 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 </section>
 </main>
 
-<footer class="wrap rodape"><div class="fio rowline"><button class="btn primary" type="button" data-imprimir><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"></path></svg>Imprimir ou salvar em PDF</button><a class="btn" href="./">Abrir o placar</a></div></footer>
+<footer class="wrap rodape"><div class="fio rowline"><button class="btn primary" type="button" data-imprimir><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"></path></svg>Imprimir ou salvar em PDF</button></div></footer>
+<nav class="tabs" aria-label="Seções do site"><div class="wrap">
+<a class="tab" href="./#inicial"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7M6 10v10h12V10M10 20v-6h4v6"></path></svg>Inicial</a>
+<a class="tab" href="./#placar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"></path></svg>Placar</a>
+<a class="tab" href="./#rodadas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM5 9h14M5 14h14M10 4v16"></path></svg>Rodadas</a>
+<a class="tab" href="./#estatisticas" aria-label="Estatísticas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9M4 21h16"></path></svg><span class="longo">Estatísticas</span><span class="curto" aria-hidden="true">Estat.</span></a>
+<a class="tab" href="./#partidas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v13H4zM8 7V4h12v13h-5"></path></svg>Partidas</a>
+<a class="tab" href="regras.html" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11M9 8h6"></path></svg>Regras</a>
+</div></nav>
 </div>
 <div class="impressao" aria-hidden="true">
 <div class="folha">
