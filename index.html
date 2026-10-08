@@ -11,7 +11,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pontinho">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Placar do Pontinho">
+<meta property="og:description" content="Placar para o jogo de baralho Pontinho, com as regras da casa e as estatísticas da partida.">
+<meta property="og:image" content="https://pontinho.cazangi.com/og.jpg">
+<meta property="og:url" content="https://pontinho.cazangi.com/">
+<link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +92,7 @@ main:focus { outline: none; }
 .view { display: flex; flex-direction: column; gap: 20px; padding-block: 20px 28px; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
 .rowline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.logo { width: 200px; max-width: 60%; height: auto; align-self: center; margin-bottom: 6px; }
 
 .tabs { background: var(--surface); border-top: 1px solid var(--line); }
 .tabs .wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding-block: 6px; }
@@ -383,7 +389,7 @@ function avisos() {
   return h;
 }
 function semPartida() {
-  return '<section class="stack"><h2>Nenhuma partida ainda</h2>' +
+  return '<section class="stack"><img class="logo" src="logo.webp" width="200" height="200" alt="Emblema do Pontinho: pontos e regras"><h2>Nenhuma partida ainda</h2>' +
     '<p>Cadastre quem está na mesa e, a cada vez que alguém bater, lance as cartas que sobraram na mão dos outros. O placar, o bloco de rodadas e as estatísticas aparecem aqui.</p>' +
     '<div class="rowline"><button class="btn primary" data-act="nova">Começar uma partida</button>' +
     (S.mode === 'local' ? '<button class="btn" data-act="exemplo">Ver uma partida de exemplo</button>' : '') + '</div></section>';

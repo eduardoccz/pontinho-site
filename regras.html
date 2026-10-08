@@ -8,7 +8,12 @@
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#17201D" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Regras do Pontinho">
+<meta property="og:description" content="As regras do Pontinho da família, com exemplos desenhados em cartas.">
+<meta property="og:image" content="https://pontinho.cazangi.com/og.jpg">
+<meta property="og:url" content="https://pontinho.cazangi.com/regras.html">
+<link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,7 +57,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .tela h2 { font-family: var(--display); font-weight: 800; font-size: 28px; line-height: 1.15; text-wrap: balance; }
 .tela h3 { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1.25; }
 .tela p { text-wrap: pretty; max-width: 62ch; }
-.tela a { color: var(--green); text-underline-offset: 3px; }
+:where(.tela) a { color: var(--green); text-underline-offset: 3px; }
 :focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 .muted { color: var(--muted); } .small { font-size: 15px; }
 .wrap { width: 100%; max-width: 760px; margin-inline: auto; padding-inline: 16px; }
@@ -68,6 +73,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 .doc { display: flex; flex-direction: column; gap: 44px; padding-block: 32px 40px; }
 .doc > section { display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
 .abre { gap: 16px !important; }
+.abre-topo { display: flex; flex-wrap: wrap-reverse; align-items: center; gap: 12px 28px; }
+.abre-texto { flex: 1 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.logo { flex: none; width: 200px; max-width: 60%; height: auto; }
 .sobre { font-size: 14px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--green); }
 .lead { font-size: 20px; }
 .rowline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
@@ -163,9 +171,14 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 
 <main class="wrap doc">
 <section class="abre">
+<div class="abre-topo">
+<div class="abre-texto">
 <p class="sobre">Regras da família</p>
 <h1>Regras do Pontinho</h1>
 <p class="lead">As regras da nossa mesa, para quem está chegando agora.</p>
+</div>
+<img class="logo" src="logo.webp" width="200" height="200" alt="Emblema do Pontinho: pontos e regras">
+</div>
 <div class="rowline"><button class="btn primary" type="button" data-imprimir><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 14h10v6H7z"></path></svg>Imprimir ou salvar em PDF</button><a class="btn" href="./">Abrir o placar</a></div>
 <p class="muted small">A impressão sai numa folha A4, frente e verso, com as mesmas regras desta página. Na tela de impressão, use papel A4 e escala de 100%.</p>
 <nav class="indice" aria-label="Nesta página">

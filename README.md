@@ -19,7 +19,11 @@ Na primeira vez:
 
 - `index.html`: o placar (estilos e código juntos).
 - `regras.html`: as regras da casa, com exemplos em cartas. O botão de imprimir gera a folha A4 frente e verso.
-- `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `icon.svg`: ícones e dados para "Adicionar à tela inicial".
+- `logo.webp`: o emblema do Pontinho, usado nas duas páginas.
+- `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`: ícones e dados para "Adicionar à tela inicial".
+- `favicon.png`: ícone da aba do navegador.
+- `og.jpg`: imagem que aparece quando o link é compartilhado.
+- `icon.svg`: ícone antigo, que não é mais usado.
 - `CNAME`: o domínio personalizado.
 - `.nojekyll`: faz o GitHub Pages servir os arquivos como estão, caso o deploy seja feito por branch.
 - `.github/workflows/deploy.yml`: deploy automático pelo GitHub Actions.
