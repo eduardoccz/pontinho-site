@@ -1,0 +1,1177 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Placar do Pontinho</title>
+<meta name="description" content="Placar para o jogo de baralho Pontinho: lance as cartas que sobraram na mão a cada rodada e veja o placar e as estatísticas da partida.">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#17201D" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pontinho">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:wght@600;800&display=swap">
+<style>
+:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px system-ui,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<style>
+/* Layout: uma coluna de até 760px; cabeçalho no topo, conteúdo que rola no meio e abas embaixo.
+   O placar é uma lista em ordem de quem está ganhando; as rodadas são um bloco de marcação, como o de papel. */
+:root {
+  --bg: #F3F6F4; --surface: #FFFFFF; --ink: #1B1B1F; --muted: #5B6168; --line: #D3DAD6;
+  --green: #0F6B4F; --on-green: #FFFFFF; --green-tint: #E3F1EA;
+  --red: #C8102E; --on-red: #FFFFFF; --red-tint: #FCECEE;
+  --card: #FFFFFF; --card-ink: #1B1B1F; --card-red: #C8102E; --card-line: #1B1B1F; --card-green: #0F6B4F;
+  --grid: #E3E7E4; --axis: #8A938E;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948; --sx: #898781;
+  --display: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+  --body: 'Atkinson Hyperlegible', Verdana, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1412; --surface: #17201D; --ink: #EFF3F1; --muted: #A4AEA9; --line: #2C3834;
+    --green: #45C296; --on-green: #07261B; --green-tint: #17342B;
+    --red: #FF7A8A; --on-red: #33070E; --red-tint: #3B1B21;
+    --card: #F2F4F3; --card-ink: #1B1B1F; --card-red: #C8102E; --card-line: #0E1412; --card-green: #0F6B4F;
+    --grid: #26312D; --axis: #7F8A85;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --sx: #898781;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1412; --surface: #17201D; --ink: #EFF3F1; --muted: #A4AEA9; --line: #2C3834;
+  --green: #45C296; --on-green: #07261B; --green-tint: #17342B;
+  --red: #FF7A8A; --on-red: #33070E; --red-tint: #3B1B21;
+  --card: #F2F4F3; --card-ink: #1B1B1F; --card-red: #C8102E; --card-line: #0E1412; --card-green: #0F6B4F;
+  --grid: #26312D; --axis: #7F8A85;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767; --sx: #898781;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.2; text-wrap: balance; }
+h3 { font-family: var(--display); font-weight: 800; font-size: 18px; line-height: 1.25; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+
+.app { height: 100%; display: flex; flex-direction: column; }
+.wrap { width: 100%; max-width: 760px; margin-inline: auto; padding-inline: 16px; }
+
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-name { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1; letter-spacing: -0.02em; }
+.suits { display: flex; gap: 3px; }
+.suits svg { width: 14px; height: 14px; }
+.suit-b { fill: var(--ink); } .suit-r { fill: var(--red); }
+.top-sub { min-width: 0; text-align: right; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+
+main { flex: 1; min-height: 0; overflow-y: auto; }
+main:focus { outline: none; }
+.view { display: flex; flex-direction: column; gap: 20px; padding-block: 20px 28px; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.rowline { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.tabs { background: var(--surface); border-top: 1px solid var(--line); }
+.tabs .wrap { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding-block: 6px; }
+.tab { min-height: 52px; border: 0; background: none; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 13px; color: var(--muted); }
+.tab svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { color: var(--green); font-weight: 700; background: var(--green-tint); }
+
+.btn { min-height: 48px; padding: 10px 18px; border-radius: 12px; border: 1.5px solid var(--ink); background: var(--surface); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+.btn.primary { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.btn.danger { background: var(--red); border-color: var(--red); color: var(--on-red); }
+.btn.quiet { border-color: var(--line); font-weight: 400; }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.link { border: 0; background: none; padding: 8px 4px; min-height: 44px; color: var(--green); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.link.danger-text { color: var(--red); }
+
+.tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--green-tint); color: var(--ink); white-space: nowrap; }
+.tag.ex { background: var(--red-tint); }
+.note { padding: 12px 14px; border-radius: 12px; background: var(--green-tint); }
+.note.warn { background: var(--red-tint); }
+
+/* Placar */
+.rank { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.rank li { display: grid; grid-template-columns: 38px 12px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--line); }
+.rank li:first-child { border-top: 0; }
+.rank li.lead { background: var(--green-tint); }
+.pos { font-family: var(--display); font-weight: 800; font-size: 20px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: none; display: inline-block; }
+.who { min-width: 0; display: flex; flex-direction: column; }
+.nome { font-weight: 700; font-size: 18px; overflow-wrap: anywhere; }
+.meta { font-size: 14px; color: var(--muted); }
+.pts { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; text-align: right; }
+.pts small { display: block; font-family: var(--body); font-weight: 400; font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+/* Bloco de rodadas */
+.scroll-x { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 10px 12px; text-align: right; border-top: 1px solid var(--line); white-space: nowrap; }
+thead th { border-top: 0; font-size: 14px; vertical-align: bottom; }
+th:first-child, td:first-child { text-align: left; }
+tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
+.th-nome { display: inline-flex; align-items: center; gap: 6px; max-width: 110px; white-space: normal; overflow-wrap: anywhere; text-align: right; }
+.bateu { font-weight: 700; color: var(--green); }
+.edit-rod { min-width: 44px; min-height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; }
+
+/* Estatísticas */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.tile .lab { font-size: 14px; color: var(--muted); }
+.tile .val { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.tile .sub { font-size: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+#chart { touch-action: pan-y; min-width: 0; }
+#chart svg { display: block; max-width: 100%; }
+.grid-l { stroke: var(--grid); stroke-width: 1; }
+.cross { stroke: var(--axis); stroke-width: 1; }
+.ax { fill: var(--muted); font-size: 12px; font-family: var(--body); }
+.lbl { fill: var(--ink); font-size: 13px; font-family: var(--body); }
+.ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.mk { stroke: var(--surface); stroke-width: 2; }
+.slider { display: flex; align-items: center; gap: 10px; }
+.slider input { flex: 1; min-width: 0; accent-color: var(--green); height: 32px; }
+.readout { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 4px 16px; }
+.readout li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.readout .rn { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.readout .rv { font-variant-numeric: tabular-nums; font-weight: 700; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(64px, max-content) minmax(0, 1fr); gap: 10px 12px; align-items: center; }
+.bars li { display: contents; }
+.bars .bn { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 150px; font-weight: 700; overflow-wrap: anywhere; }
+.bars .bt { display: flex; align-items: center; gap: 8px; min-width: 0; border-left: 1px solid var(--axis); padding-block: 3px; }
+.bars .bf { height: 16px; border-radius: 0 4px 4px 0; background: var(--green); }
+.bars .bv { font-family: var(--display); font-weight: 800; font-size: 20px; line-height: 1; font-variant-numeric: tabular-nums; }
+.facts { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+
+/* Partidas */
+.games { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.game { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.game.cur { border: 2px solid var(--green); }
+.game-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.game-nome { font-weight: 700; font-size: 18px; overflow-wrap: anywhere; }
+
+/* Folhas de lançamento */
+.sheet { position: fixed; inset: 0; z-index: 10; background: var(--bg); overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet .wrap { display: flex; flex-direction: column; gap: 18px; padding-block: 18px 28px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { min-height: 48px; padding: 8px 16px; border-radius: 999px; border: 1.5px solid var(--ink); background: var(--surface); font-weight: 700; overflow-wrap: anywhere; }
+.chip.sm { min-height: 44px; padding: 6px 14px; font-weight: 400; border-color: var(--line); }
+.periodo .field { flex: 1; min-width: 140px; }
+.chip[aria-pressed="true"] { background: var(--green); border-color: var(--green); color: var(--on-green); }
+.hand { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.hand-head { width: 100%; min-height: 56px; border: 0; background: none; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
+.hand-head .nome { font-size: 17px; }
+.hand-pts { font-family: var(--display); font-weight: 800; font-size: 22px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hand-pts.falta { font-family: var(--body); font-weight: 400; font-size: 14px; color: var(--muted); }
+.hand-body { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+.picked { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; align-items: center; }
+.pk { min-height: 40px; padding: 4px 10px; border-radius: 8px; border: 1.5px solid var(--card-line); background: var(--card); color: var(--card-ink); font-family: var(--display); font-weight: 800; display: inline-flex; align-items: center; gap: 6px; }
+.pk .x { font-family: var(--body); font-weight: 400; font-size: 13px; }
+.pad { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; }
+.cardbtn { min-height: 64px; border-radius: 8px; border: 1.5px solid var(--card-line); background: var(--card); color: var(--card-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; }
+.cardbtn .r { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1; }
+.cardbtn .v { font-size: 12px; line-height: 1; }
+.cardbtn.red .r { color: var(--card-red); }
+.cardbtn svg, .pk svg { width: 20px; height: 20px; fill: var(--card-green); }
+.cardbtn:active { transform: translateY(1px); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 14px; font-weight: 700; }
+.field textarea { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: 14px/1.45 var(--body); resize: vertical; }
+.exp-img { width: 100%; height: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.outros summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; color: var(--green); }
+.field input { min-height: 48px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--surface); width: 100%; }
+.inline { display: flex; align-items: center; gap: 8px; }
+.inline input { flex: 1; min-width: 0; }
+.icon-btn { flex: none; width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.sheet-foot { display: flex; flex-direction: column; gap: 10px; }
+@media (prefers-reduced-motion: no-preference) { .btn, .chip, .cardbtn { transition: transform 0.08s; } }
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="wrap">
+      <div class="brand">
+        <span class="brand-name">Pontinho</span>
+        <span class="suits" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="suit-b"><path d="M12 2C8 7 3 10 3 14.2a4.3 4.3 0 0 0 7.6 2.4c-.2 2.2-1 3.8-2.6 5.4h8c-1.6-1.6-2.4-3.2-2.6-5.4a4.3 4.3 0 0 0 7.6-2.4C21 10 16 7 12 2z"></path></svg>
+          <svg viewBox="0 0 24 24" class="suit-r"><path d="M12 21C5 15 2 11.5 2 7.8a5 5 0 0 1 10-1.6a5 5 0 0 1 10 1.6C22 11.5 19 15 12 21z"></path></svg>
+          <svg viewBox="0 0 24 24" class="suit-b"><circle cx="12" cy="7" r="4.6"></circle><circle cx="6.6" cy="13.6" r="4.6"></circle><circle cx="17.4" cy="13.6" r="4.6"></circle><path d="M12 11c0 5-1.4 8.4-3.6 11h7.2C13.4 19.4 12 16 12 11z"></path></svg>
+          <svg viewBox="0 0 24 24" class="suit-r"><path d="M12 2l8 10-8 10-8-10z"></path></svg>
+        </span>
+      </div>
+      <div class="top-sub" id="top-sub"></div>
+    </div>
+  </header>
+  <main id="view" tabindex="-1"></main>
+  <nav class="tabs" aria-label="Seções do placar">
+    <div class="wrap">
+      <button class="tab" id="tab-placar" data-act="tab" data-tab="placar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"></path></svg>Placar</button>
+      <button class="tab" id="tab-rodadas" data-act="tab" data-tab="rodadas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM5 9h14M5 14h14M10 4v16"></path></svg>Rodadas</button>
+      <button class="tab" id="tab-stats" data-act="tab" data-tab="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9M4 21h16"></path></svg>Estatísticas</button>
+      <button class="tab" id="tab-partidas" data-act="tab" data-tab="partidas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11v13H4zM8 7V4h12v13h-5"></path></svg>Partidas</button>
+    </div>
+  </nav>
+</div>
+<div class="sheet" id="sheet" hidden></div>
+
+<script>
+(function () {
+'use strict';
+
+/* ---------- regras da casa ---------- */
+var CARTAS = [
+  { k: 'JK', r: 'Coringa', v: 20 }, { k: 'A', r: 'A', v: 15 }, { k: 'K', r: 'K', v: 13 },
+  { k: 'Q', r: 'Q', v: 12 }, { k: 'J', r: 'J', v: 11 }
+].concat([10, 9, 8, 7, 6, 5, 4, 3, 2].map(function (n) { return { k: String(n), r: String(n), v: n }; }));
+var VALOR = {}; CARTAS.forEach(function (c) { VALOR[c.k] = c.v; });
+var MAX_JOGADORES = 10;
+var STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.3l7.1-.7z"></path></svg>';
+
+/* ---------- utilidades ---------- */
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function uid(p) { return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function ord(n) { return n + 'º'; }
+function plural(n, s, p) { return n + ' ' + (n === 1 ? s : p); }
+function cor(i) { return i < 8 ? 'var(--s' + (i + 1) + ')' : 'var(--sx)'; }
+function dataCurta(iso) { var d = new Date(iso); if (isNaN(d)) return ''; return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); }
+function lista(nomes) { if (nomes.length <= 1) return nomes.join(''); return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1]; }
+var LS = {
+  get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+  set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento: segue em memória */ } }
+};
+
+/* ---------- estado ---------- */
+var S = { games: [], loaded: false, mode: 'loading', tab: 'placar', gameId: null, sheet: null, draft: null, chartRound: null, confirm: null, saveErr: false, syncErr: false, filtro: { tipo: 'todas', de: '', ate: '' }, renome: '' };
+var db = null;
+var SOMENTE_LOCAL = true;
+var EXEMPLO = {"nome":"Partida de exemplo","exemplo":true,"criadaEm":"2026-10-08T19:00:00.000Z","encerradaEm":null,"atualizadaEm":"2026-10-08T19:00:00.000Z","jogadores":[{"id":"j1","nome":"Alice","desde":0,"base":0},{"id":"j2","nome":"Bob","desde":0,"base":0},{"id":"j3","nome":"Charlie","desde":0,"base":0},{"id":"j4","nome":"Daisy","desde":0,"base":0}],"rodadas":[{"id":"r1","bateu":"j2","em":"2026-10-08T19:05:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"7":1,"5":1},"manual":false},"j3":{"pontos":34,"cartas":{"K":1,"Q":1,"9":1},"manual":false},"j4":{"pontos":19,"cartas":{"A":1,"4":1},"manual":false}}},{"id":"r2","bateu":"j2","em":"2026-10-08T19:12:00.000Z","maos":{"j1":{"pontos":14,"cartas":{"J":1,"3":1},"manual":false},"j3":{"pontos":28,"cartas":{"JK":1,"8":1},"manual":false},"j4":{"pontos":14,"cartas":{"6":2,"2":1},"manual":false}}},{"id":"r3","bateu":"j4","em":"2026-10-08T19:20:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"10":1,"2":1},"manual":false},"j2":{"pontos":9,"cartas":{"5":1,"4":1},"manual":false},"j3":{"pontos":20,"cartas":{"K":1,"7":1},"manual":false}}},{"id":"r4","bateu":"j1","em":"2026-10-08T19:28:00.000Z","maos":{"j2":{"pontos":48,"cartas":{"JK":1,"A":1,"K":1},"manual":false},"j3":{"pontos":7,"cartas":{"4":1,"3":1},"manual":false},"j4":{"pontos":21,"cartas":{"Q":1,"9":1},"manual":false}}},{"id":"r5","bateu":"j1","em":"2026-10-08T19:35:00.000Z","maos":{"j2":{"pontos":36,"cartas":{"K":1,"Q":1,"J":1},"manual":false},"j3":{"pontos":5,"cartas":{"3":1,"2":1},"manual":false},"j4":{"pontos":20,"cartas":{"8":1,"7":1,"5":1},"manual":false}}},{"id":"r6","bateu":"j1","em":"2026-10-08T19:43:00.000Z","maos":{"j2":{"pontos":25,"cartas":{"A":1,"10":1},"manual":false},"j3":{"pontos":6,"cartas":{"6":1},"manual":false},"j4":{"pontos":24,"cartas":{"J":1,"9":1,"4":1},"manual":false}}},{"id":"r7","bateu":"j3","em":"2026-10-08T19:50:00.000Z","maos":{"j1":{"pontos":17,"cartas":{"9":1,"8":1},"manual":false},"j2":{"pontos":22,"cartas":{"Q":1,"7":1,"3":1},"manual":false},"j4":{"pontos":30,"cartas":{"A":2},"manual":false}}},{"id":"r8","bateu":"j3","em":"2026-10-08T19:58:00.000Z","maos":{"j1":{"pontos":18,"cartas":{"K":1,"5":1},"manual":false},"j2":{"pontos":24,"cartas":{"10":2,"4":1},"manual":false},"j4":{"pontos":9,"cartas":{"7":1,"2":1},"manual":false}}}],"id":"exemplo"};
+
+function ordenadas() { return S.games.slice().sort(function (a, b) { return String(b.criadaEm).localeCompare(String(a.criadaEm)); }); }
+function cur() {
+  var g = S.games.find(function (x) { return x.id === S.gameId; });
+  if (g) return g;
+  var o = ordenadas();
+  return o.find(function (x) { return !x.encerradaEm && !x.exemplo; }) || o.find(function (x) { return !x.exemplo; }) || o[0] || null;
+}
+function ativosEm(g, idx) { return g.jogadores.filter(function (j) { return (j.desde || 0) <= idx; }); }
+function pontosDaMao(m) {
+  if (!m) return 0;
+  if (m.manual !== '' && m.manual != null) { var n = Math.floor(Number(m.manual)); return n > 0 ? n : 0; }
+  var t = 0; Object.keys(m.cartas || {}).forEach(function (k) { t += (VALOR[k] || 0) * m.cartas[k]; }); return t;
+}
+
+/* ---------- contas e estatísticas ---------- */
+function stats(g) {
+  var P = g.jogadores.map(function (j, i) {
+    return { id: j.id, nome: j.nome, i: i, desde: j.desde || 0, base: j.base || 0, total: j.base || 0, batidas: 0, seq: 0, seqFim: -1, run: 0,
+      lider: 0, pior: 0, piorRod: -1, soma: 0, jogadas: 0, cum: [], pos: [], ult: null, ptsRod: [] };
+  });
+  var R = g.rodadas.length, trocas = 0, antes = null;
+  g.rodadas.forEach(function (rd, r) {
+    var act = P.filter(function (p) { return p.desde <= r; });
+    act.forEach(function (p) {
+      var bateu = rd.bateu === p.id;
+      var pts = bateu ? 0 : ((rd.maos && rd.maos[p.id] && rd.maos[p.id].pontos) || 0);
+      p.total += pts; p.soma += pts; p.jogadas++; p.ult = bateu ? 'bateu' : pts; p.ptsRod[r] = bateu ? 'bateu' : pts;
+      if (bateu) { p.batidas++; p.run++; if (p.run > p.seq) { p.seq = p.run; p.seqFim = r; } } else { p.run = 0; }
+      if (pts > p.pior) { p.pior = pts; p.piorRod = r; }
+    });
+    P.forEach(function (p) {
+      if (p.desde <= r) { p.cum[r] = p.total; p.pos[r] = 1 + act.filter(function (q) { return q.total < p.total; }).length; if (p.pos[r] === 1) p.lider++; }
+      else { p.cum[r] = null; p.pos[r] = null; p.ptsRod[r] = null; }
+    });
+    var lid = act.filter(function (p) { return p.pos[r] === 1; }).map(function (p) { return p.id; }).sort().join(',');
+    if (antes !== null && lid !== antes) trocas++;
+    antes = lid;
+  });
+  P.forEach(function (p) {
+    p.posAtual = 1 + P.filter(function (q) { return q.total < p.total; }).length;
+    p.media = p.jogadas ? p.soma / p.jogadas : 0;
+  });
+  var queda = null, subida = null;
+  if (R >= 3) {
+    P.forEach(function (p) {
+      var melhor = null, mr = -1, piorP = null, pr = -1;
+      for (var r = p.desde; r < R - 1; r++) {
+        if (p.pos[r] == null) continue;
+        if (melhor === null || p.pos[r] <= melhor) { melhor = p.pos[r]; mr = r; }
+        if (piorP === null || p.pos[r] >= piorP) { piorP = p.pos[r]; pr = r; }
+      }
+      if (melhor !== null) {
+        var d = p.pos[R - 1] - melhor, s = piorP - p.pos[R - 1];
+        if (d >= 1 && (!queda || (melhor === 1 && queda.de !== 1) || ((melhor === 1) === (queda.de === 1) && d > queda.d))) queda = { p: p, d: d, de: melhor, rod: mr, para: p.pos[R - 1] };
+        if (s >= 1 && (!subida || s > subida.d || (s === subida.d && piorP > subida.de))) subida = { p: p, d: s, de: piorP, rod: pr, para: p.pos[R - 1] };
+      }
+    });
+  }
+  var ordem = P.slice().sort(function (a, b) { return a.total - b.total || a.i - b.i; });
+  return { P: P, R: R, trocas: trocas, queda: queda, subida: subida, ordem: ordem };
+}
+
+/* ---------- guardar ---------- */
+function espelho() { if (S.mode === 'local') LS.set('pontinho.partidas', S.games); }
+function commit(g) {
+  g.atualizadaEm = new Date().toISOString();
+  var i = S.games.findIndex(function (x) { return x.id === g.id; });
+  if (i >= 0) S.games[i] = g; else S.games.push(g);
+  espelho();
+  if (S.mode === 'db') {
+    var body = clone(g); delete body.id;
+    db.collection('partidas').doc(g.id).set(body).then(function () { if (S.saveErr) { S.saveErr = false; renderView(); } },
+      function () { S.saveErr = true; renderView(); });
+  }
+  renderView();
+}
+function apagarPartida(id) {
+  S.games = S.games.filter(function (x) { return x.id !== id; });
+  if (S.gameId === id) S.gameId = null;
+  espelho();
+  if (S.mode === 'db') db.collection('partidas').doc(id).delete().catch(function () { S.saveErr = true; renderView(); });
+  renderView();
+}
+function escolher(id) { S.gameId = id; S.chartRound = null; LS.set('pontinho.sel', id); }
+
+function iniciar() {
+  S.gameId = LS.get('pontinho.sel');
+  var pronto = Promise.resolve(null); /* versão aberta: as partidas ficam só no navegador */
+  pronto.then(function (cap) {
+    if (cap) {
+      db = cap; S.mode = 'db';
+      try {
+        db.collection('partidas').onSnapshot(function (snap) {
+          S.games = snap.docs.map(function (d) { var b = clone(d.data() || {}); b.id = d.id; b.jogadores = b.jogadores || []; b.rodadas = b.rodadas || []; return b; });
+          S.loaded = true; S.syncErr = false; renderView();
+        }, function () { S.syncErr = true; S.loaded = true; renderView(); });
+        return;
+      } catch (e) { db = null; }
+    }
+    S.mode = 'local'; S.games = LS.get('pontinho.partidas') || [];
+    /* um exemplo carregado antes fica com os nomes atuais do exemplo */
+    S.games.forEach(function (g) {
+      if (g.id !== 'exemplo' || !g.exemplo) return;
+      (g.jogadores || []).forEach(function (j) { var e = EXEMPLO.jogadores.find(function (x) { return x.id === j.id; }); if (e) j.nome = e.nome; });
+    });
+    espelho(); S.loaded = true; renderView();
+  });
+}
+
+/* ---------- telas ---------- */
+function avisos() {
+  var h = '';
+  if (S.saveErr) h += '<p class="note warn">Não deu para salvar a última alteração. Confira a conexão; ela será enviada de novo no próximo lançamento.</p>';
+  if (S.syncErr) h += '<p class="note warn">O placar salvo não está respondendo agora. Recarregue a página para tentar de novo.</p>';
+  return h;
+}
+function semPartida() {
+  return '<section class="stack"><h2>Nenhuma partida ainda</h2>' +
+    '<p>Cadastre quem está na mesa e, a cada vez que alguém bater, lance as cartas que sobraram na mão dos outros. O placar, o bloco de rodadas e as estatísticas aparecem aqui.</p>' +
+    '<div class="rowline"><button class="btn primary" data-act="nova">Começar uma partida</button>' +
+    (S.mode === 'local' ? '<button class="btn" data-act="exemplo">Ver uma partida de exemplo</button>' : '') + '</div></section>';
+}
+function cabecalhoPartida(g, st) {
+  var tags = '';
+  if (g.exemplo) tags += '<span class="tag ex">Exemplo</span>';
+  if (g.encerradaEm) tags += '<span class="tag">Encerrada</span>';
+  return '<div class="rowline"><h2>' + esc(g.nome) + '</h2>' + tags + '</div>' +
+    '<p class="muted">' + (st.R ? plural(st.R, 'rodada jogada', 'rodadas jogadas') : 'Nenhuma rodada lançada') + ' · ' + plural(g.jogadores.length, 'jogador', 'jogadores') + '</p>';
+}
+function viewPlacar(g) {
+  if (!g) return semPartida();
+  var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st);
+  if (g.exemplo) h += '<p class="note">Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Comece a de vocês na aba Partidas.</p>';
+  if (g.encerradaEm && st.R) {
+    var venc = st.ordem.filter(function (p) { return p.posAtual === 1; }).map(function (p) { return p.nome; });
+    h += '<p class="note"><strong>' + esc(lista(venc)) + '</strong> ' + (venc.length > 1 ? 'ganharam' : 'ganhou') + ' com ' + plural(st.ordem[0].total, 'ponto', 'pontos') + '.</p>';
+  }
+  h += '</section><ol class="rank" aria-label="Placar: quem tem menos pontos está na frente">';
+  st.ordem.forEach(function (p) {
+    var meta = plural(p.batidas, 'batida', 'batidas');
+    if (p.ult === 'bateu') meta += ' · bateu na última'; else if (p.ult != null) meta += ' · +' + p.ult + ' na última';
+    if (p.desde > 0) meta += ' · entrou na rodada ' + (p.desde + 1);
+    h += '<li class="' + (st.R && p.posAtual === 1 ? 'lead' : '') + '"><span class="pos">' + ord(p.posAtual) + '</span><span class="dot" style="background:' + cor(p.i) + '"></span>' +
+      '<span class="who"><span class="nome">' + esc(p.nome) + '</span><span class="meta">' + meta + '</span></span>' +
+      '<span class="pts">' + p.total + '<small>' + (p.total === 1 ? 'ponto' : 'pontos') + '</small></span></li>';
+  });
+  h += '</ol>';
+  if (!st.R) h += '<p class="muted">Todo mundo começa com zero. Quando alguém bater, toque em Lançar rodada.</p>';
+  h += '<section class="stack">';
+  if (!g.encerradaEm) {
+    h += '<button class="btn primary wide" data-act="rodada">Lançar rodada ' + (st.R + 1) + '</button>';
+    h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
+      (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') + '</div>';
+  } else {
+    h += '<div class="rowline"><button class="btn primary" data-act="nova">Nova partida</button><button class="link" data-act="reabrir">Reabrir esta</button></div>';
+  }
+  return h + '</section>';
+}
+function viewRodadas(g) {
+  if (!g) return semPartida();
+  var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st) + '</section>';
+  if (!st.R) return h + '<p class="muted">O bloco de marcação aparece aqui depois da primeira rodada, com uma linha por rodada e uma coluna por jogador.</p>';
+  h += '<div class="scroll-x"><table><thead><tr><th scope="col">Rodada</th>';
+  st.P.forEach(function (p) { h += '<th scope="col"><span class="th-nome"><span class="dot" style="background:' + cor(p.i) + '"></span>' + esc(p.nome) + '</span></th>'; });
+  h += '</tr></thead><tbody>';
+  g.rodadas.forEach(function (rd, r) {
+    h += '<tr><td><button class="edit-rod" data-act="editar" data-idx="' + r + '" aria-label="Corrigir a rodada ' + (r + 1) + '">' + (r + 1) + '</button></td>';
+    st.P.forEach(function (p) {
+      var v = p.ptsRod[r];
+      h += '<td>' + (v == null ? '<span class="muted">–</span>' : v === 'bateu' ? '<span class="bateu">bateu</span>' : v) + '</td>';
+    });
+    h += '</tr>';
+  });
+  h += '</tbody><tfoot><tr><th scope="row">Total</th>';
+  st.P.forEach(function (p) { h += '<td>' + p.total + '</td>'; });
+  h += '</tr></tfoot></table></div><p class="muted small">Toque no número de uma rodada para corrigir ou apagar o lançamento.</p>';
+  return h;
+}
+function viewStats(g) {
+  if (!g) return semPartida();
+  var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st) + '</section>';
+  if (!st.R) return h + '<p class="muted">As estatísticas aparecem depois da primeira rodada: quantas vezes cada um bateu, a maior sequência batendo e quem liderou em cada momento.</p>';
+  var maxB = Math.max.apply(null, st.P.map(function (p) { return p.batidas; }));
+  var topB = st.P.filter(function (p) { return p.batidas === maxB; }).map(function (p) { return p.nome; });
+  var maxS = Math.max.apply(null, st.P.map(function (p) { return p.seq; }));
+  var topS = st.P.filter(function (p) { return p.seq === maxS; });
+  h += '<div><button class="btn" data-act="exportar">Exportar partida</button></div>';
+  h += '<div class="tiles">' +
+    '<div class="tile"><span class="lab">Quem mais bateu</span><span class="val">' + esc(lista(topB)) + '</span><span class="sub">' + plural(maxB, 'batida', 'batidas') + (topB.length > 1 ? ' cada' : '') + '</span></div>' +
+    '<div class="tile"><span class="lab">Maior sequência batendo</span><span class="val">' + esc(lista(topS.map(function (p) { return p.nome; }))) + '</span><span class="sub">' +
+      (maxS > 1 ? maxS + ' seguidas' + (topS.length === 1 ? ' (rodadas ' + (topS[0].seqFim - maxS + 2) + ' a ' + (topS[0].seqFim + 1) + ')' : '') : 'ninguém bateu duas seguidas') + '</span></div>' +
+    '<div class="tile"><span class="lab">Trocas de liderança</span><span class="val">' + st.trocas + '</span><span class="sub">' + (st.trocas === 1 ? 'vez que a ponta mudou de mãos' : 'vezes que a ponta mudou de mãos') + '</span></div>' +
+    '</div>';
+  h += '<section class="panel"><div class="stack" style="gap:2px"><h3>Quantas vezes cada um bateu</h3><p class="muted small">Em ' + plural(st.R, 'rodada', 'rodadas') + '.</p></div><ul class="bars">';
+  st.P.slice().sort(function (a, b) { return b.batidas - a.batidas || a.i - b.i; }).forEach(function (p) {
+    h += '<li><span class="bn"><span class="dot" style="background:' + cor(p.i) + '"></span>' + esc(p.nome) + '</span>' +
+      '<span class="bt"><span class="bf" style="width:calc((100% - 36px) * ' + (maxB ? (p.batidas / maxB).toFixed(3) : 0) + ')"></span><span class="bv">' + p.batidas + '</span></span></li>';
+  });
+  h += '</ul></section>';
+  h += '<section class="panel"><div class="stack" style="gap:2px"><h3>Pontos a cada rodada</h3><p class="muted small">A linha de cada um sobe com os pontos que sobraram na mão; quem está mais embaixo está ganhando. Arraste no gráfico ou use o controle para ver uma rodada.</p></div>' +
+    '<div id="chart"></div>' +
+    '<div class="slider"><label for="rodada-sel" class="small">Rodada</label><input type="range" id="rodada-sel" min="1" max="' + st.R + '" step="1" value="' + st.R + '"' + (st.R < 2 ? ' disabled' : '') + '></div>' +
+    '<div id="readout" class="stack" style="gap:6px"></div></section>';
+  var fatos = fatosDaPartida(st).map(function (f) { return '<strong>' + esc(f[0]) + ':</strong> ' + esc(f[1]); });
+  if (fatos.length) h += '<section class="stack"><h3>Viradas da partida</h3><ul class="facts"><li>' + fatos.join('</li><li>') + '</li></ul></section>';
+  h += '<section class="stack"><h3>Cada jogador</h3><div class="scroll-x"><table><thead><tr><th scope="col">Jogador</th><th scope="col">Batidas</th><th scope="col">Maior<br>sequência</th><th scope="col">Rodadas<br>na frente</th><th scope="col">Maior<br>mão</th><th scope="col">Média por<br>rodada</th></tr></thead><tbody>';
+  st.ordem.forEach(function (p) {
+    h += '<tr><th scope="row"><span class="th-nome" style="text-align:left"><span class="dot" style="background:' + cor(p.i) + '"></span>' + esc(p.nome) + '</span></th>' +
+      '<td>' + p.batidas + '</td><td>' + p.seq + '</td><td>' + p.lider + '</td><td>' + p.pior + '</td><td>' + p.media.toFixed(1).replace('.', ',') + '</td></tr>';
+  });
+  return h + '</tbody></table></div></section>';
+}
+function diaLocal(v) { var d = v instanceof Date ? v : new Date(v); if (isNaN(d)) return ''; return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function dataCompleta(iso) { var s = diaLocal(iso); return s ? s.slice(8) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : ''; }
+function diasAtras(n) { var d = new Date(); d.setDate(d.getDate() - n); return diaLocal(d); }
+function passaFiltro(g) {
+  var f = S.filtro, dia = diaLocal(g.criadaEm);
+  if (f.tipo === 'hoje') return dia === diaLocal(new Date());
+  if (f.tipo === '7') return dia >= diasAtras(6);
+  if (f.tipo === '30') return dia >= diasAtras(29);
+  if (f.tipo === 'periodo') return (!f.de || dia >= f.de) && (!f.ate || dia <= f.ate);
+  return true;
+}
+function listaPartidas() {
+  var o = ordenadas(), vis = o.filter(passaFiltro), atual = cur(), h = '';
+  if (!o.length) return '<p class="muted">Cada partida guardada aparece aqui, com o placar final e as estatísticas.</p>';
+  h += '<p class="muted small">' + (vis.length === o.length ? plural(o.length, 'partida', 'partidas') : 'Mostrando ' + vis.length + ' de ' + plural(o.length, 'partida', 'partidas')) + '</p>';
+  if (!vis.length) return h + '<p>Nenhuma partida começou nesse período.</p>';
+  h += '<ul class="games">';
+  vis.forEach(function (g) {
+    var st = stats(g), lider = st.ordem.filter(function (p) { return p.posAtual === 1; }).map(function (p) { return p.nome; });
+    var eh = atual && atual.id === g.id;
+    h += '<li class="game' + (eh ? ' cur' : '') + '">';
+    if (S.confirm === 'renomear:' + g.id) {
+      h += '<div class="field"><label for="rn-campo">Novo nome da partida</label><input type="text" id="rn-campo" data-in="renomear" maxlength="40" value="' + esc(S.renome) + '"></div>' +
+        '<div class="rowline"><button class="btn primary" data-act="renomear-sim" data-id="' + esc(g.id) + '">Salvar nome</button><button class="btn quiet" data-act="cancelar-conf">Cancelar</button></div></li>';
+      return;
+    }
+    h += '<div class="game-top"><span class="game-nome">' + esc(g.nome) + '</span><span class="rowline" style="gap:6px">' +
+      (g.exemplo ? '<span class="tag ex">Exemplo</span>' : '') + (g.encerradaEm ? '<span class="tag">Encerrada</span>' : '<span class="tag">Em andamento</span>') + '</span></div>' +
+      '<p class="muted small">' + dataCompleta(g.criadaEm) + ' · ' + esc(lista(g.jogadores.map(function (j) { return j.nome; }))) + '</p>' +
+      '<p class="small">' + (st.R ? plural(st.R, 'rodada', 'rodadas') + ' · ' + (g.encerradaEm ? 'ganhou ' : 'na frente: ') + esc(lista(lider)) + ' (' + st.ordem[0].total + ')' : 'Nenhuma rodada lançada') + '</p>';
+    if (S.confirm === 'apagar:' + g.id) {
+      h += '<div class="rowline"><span>Apagar esta partida de vez?</span><button class="btn danger" data-act="apagar-sim" data-id="' + esc(g.id) + '">Apagar</button><button class="btn quiet" data-act="cancelar-conf">Manter</button></div>';
+    } else {
+      h += '<div class="rowline">' + (eh ? '<span class="small muted">Aberta no placar</span>' : '<button class="link" data-act="abrir" data-id="' + esc(g.id) + '">Abrir no placar</button>') +
+        '<button class="link" data-act="renomear" data-id="' + esc(g.id) + '">Renomear</button>' +
+        '<button class="link" data-act="exportar" data-id="' + esc(g.id) + '">Exportar</button>' +
+        '<button class="link danger-text" data-act="apagar" data-id="' + esc(g.id) + '">Apagar</button></div>';
+    }
+    h += '</li>';
+  });
+  return h + '</ul>';
+}
+function viewPartidas() {
+  var f = S.filtro, h = '<section class="stack"><h2>Partidas</h2><div><button class="btn primary" data-act="nova">Nova partida</button></div></section>';
+  if (S.games.length) {
+    h += '<section class="stack"><p class="small" id="f-tit"><strong>Mostrar partidas de</strong></p><div class="chips" role="group" aria-labelledby="f-tit">';
+    [['todas', 'Todas as datas'], ['hoje', 'Hoje'], ['7', 'Últimos 7 dias'], ['30', 'Últimos 30 dias'], ['periodo', 'Escolher período']].forEach(function (x) {
+      h += '<button class="chip sm" id="f-' + x[0] + '" data-act="filtro" data-f="' + x[0] + '" aria-pressed="' + (f.tipo === x[0]) + '">' + x[1] + '</button>';
+    });
+    h += '</div>';
+    if (f.tipo === 'periodo') h += '<div class="rowline periodo"><div class="field"><label for="f-de">De</label><input type="date" id="f-de" data-in="f-de" value="' + esc(f.de) + '"></div>' +
+      '<div class="field"><label for="f-ate">Até</label><input type="date" id="f-ate" data-in="f-ate" value="' + esc(f.ate) + '"></div></div>';
+    h += '</section>';
+  }
+  h += '<div id="lista-partidas" class="stack">' + listaPartidas() + '</div>';
+  if (S.mode === 'local') h += '<p class="muted small">As partidas ficam guardadas só neste aparelho, no navegador. Se os dados do navegador forem apagados, elas se perdem.</p>';
+  return h;
+}
+
+function renderView() {
+  var g = cur(), v = $('#view'), topo = $('#top-sub');
+  ['placar', 'rodadas', 'stats', 'partidas'].forEach(function (t) { var b = $('#tab-' + t); if (S.tab === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  topo.textContent = g ? g.nome : '';
+  if (!S.loaded) { v.innerHTML = '<div class="wrap view"><p class="muted">Abrindo o placar…</p></div>'; return; }
+  var corpo = S.tab === 'placar' ? viewPlacar(g) : S.tab === 'rodadas' ? viewRodadas(g) : S.tab === 'stats' ? viewStats(g) : viewPartidas();
+  v.innerHTML = '<div class="wrap view">' + avisos() + corpo + '</div>';
+  if (S.tab === 'stats') desenhar();
+}
+
+/* ---------- gráfico de pontos acumulados ---------- */
+var geo = null;
+function passoBonito(maxV) {
+  var bruto = maxV / 4, pot = Math.pow(10, Math.floor(Math.log10(Math.max(bruto, 1)))), f = bruto / pot;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * pot;
+}
+function desenhar() {
+  var box = $('#chart'); if (!box) return;
+  var g = cur(); if (!g) return;
+  var st = stats(g), R = st.R; if (!R) { box.innerHTML = ''; return; }
+  var W = Math.max(260, Math.floor(box.clientWidth || 320));
+  var top = 14, left = 40, right = Math.round(Math.min(130, Math.max(76, W * 0.26))), bottom = 28, ph = 230;
+  var pw = W - left - right, H = top + ph + bottom;
+  var maxV = Math.max.apply(null, st.P.map(function (p) { return p.total; }));
+  var passoY = maxV > 0 ? passoBonito(maxV) : 5, maxY = maxV > 0 ? Math.ceil(maxV / passoY) * passoY : 10;
+  var x = function (k) { return left + k * pw / R; };
+  var y = function (v) { return top + ph - v / maxY * ph; };
+  var sel = S.chartRound == null ? R - 1 : Math.min(R - 1, Math.max(0, S.chartRound));
+  geo = { left: left, pw: pw, R: R };
+  var s = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Pontos acumulados de cada jogador ao fim de cada rodada. Os mesmos números estão na lista abaixo e na aba Rodadas.">';
+  for (var v = 0; v <= maxY + 0.001; v += passoY) {
+    s += '<line class="grid-l" x1="' + left + '" x2="' + (left + pw) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"></line>' +
+      '<text class="ax" x="' + (left - 8) + '" y="' + (y(v) + 4).toFixed(1) + '" text-anchor="end">' + v + '</text>';
+  }
+  var passo = Math.max(1, Math.ceil(R / Math.max(2, Math.floor(pw / 34))));
+  for (var k = 1; k <= R; k++) {
+    if ((R - k) % passo === 0) s += '<text class="ax" x="' + x(k).toFixed(1) + '" y="' + (H - 8) + '" text-anchor="middle">' + k + '</text>';
+  }
+  s += '<line class="cross" x1="' + x(sel + 1).toFixed(1) + '" x2="' + x(sel + 1).toFixed(1) + '" y1="' + (top - 6) + '" y2="' + (top + ph) + '"></line>';
+  st.P.forEach(function (pl) {
+    var d = 'M' + x(pl.desde).toFixed(1) + ' ' + y(pl.base).toFixed(1) + ' ';
+    for (var r = pl.desde; r < R; r++) d += 'L' + x(r + 1).toFixed(1) + ' ' + y(pl.cum[r]).toFixed(1) + ' ';
+    s += '<path class="ln" d="' + d + '" style="stroke:' + cor(pl.i) + '"></path>';
+  });
+  var rot = [];
+  st.P.forEach(function (pl) {
+    if (sel !== R - 1 && pl.cum[sel] != null) s += '<circle class="mk" cx="' + x(sel + 1).toFixed(1) + '" cy="' + y(pl.cum[sel]).toFixed(1) + '" r="5" style="fill:' + cor(pl.i) + '"></circle>';
+    s += '<circle class="mk" cx="' + x(R).toFixed(1) + '" cy="' + y(pl.total).toFixed(1) + '" r="5" style="fill:' + cor(pl.i) + '"></circle>';
+    rot.push({ y0: y(pl.total), y: y(pl.total), nome: pl.nome });
+  });
+  rot.sort(function (a, b) { return a.y - b.y; });
+  for (var i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < 16) rot[i].y = rot[i - 1].y + 16;
+  var sobra = rot[rot.length - 1].y - (top + ph + 4);
+  if (sobra > 0) {
+    rot[rot.length - 1].y -= sobra;
+    for (var j = rot.length - 2; j >= 0; j--) if (rot[j + 1].y - rot[j].y < 16) rot[j].y = rot[j + 1].y - 16;
+  }
+  var maxCh = Math.max(4, Math.floor((right - 22) / 7.4));
+  rot.forEach(function (l) {
+    var t = l.nome.length > maxCh ? l.nome.slice(0, maxCh - 1) + '…' : l.nome;
+    if (Math.abs(l.y - l.y0) > 3) s += '<line class="cross" x1="' + (x(R) + 7).toFixed(1) + '" y1="' + l.y0.toFixed(1) + '" x2="' + (x(R) + 15).toFixed(1) + '" y2="' + l.y.toFixed(1) + '"></line>';
+    s += '<text class="lbl" x="' + (x(R) + 18).toFixed(1) + '" y="' + (l.y + 4).toFixed(1) + '">' + esc(t) + '</text>';
+  });
+  box.innerHTML = s + '</svg>';
+  var rd = g.rodadas[sel], quem = st.P.find(function (pl) { return pl.id === rd.bateu; });
+  var linhas = st.P.filter(function (pl) { return pl.pos[sel] != null; }).sort(function (a, b) { return a.pos[sel] - b.pos[sel] || a.i - b.i; });
+  var h = '<p><strong>Rodada ' + (sel + 1) + ' de ' + R + '</strong>' + (quem ? ' · bateu: ' + esc(quem.nome) : '') + '</p><ul class="readout">';
+  linhas.forEach(function (pl) {
+    h += '<li><span class="dot" style="background:' + cor(pl.i) + '"></span><span>' + ord(pl.pos[sel]) + '</span><span class="rn">' + esc(pl.nome) + '</span><span class="rv">' + pl.cum[sel] + '</span></li>';
+  });
+  $('#readout').innerHTML = h + '</ul>';
+  var sl = $('#rodada-sel'); if (sl && Number(sl.value) !== sel + 1) sl.value = String(sel + 1);
+}
+function rodadaNoPonto(ev) {
+  var box = $('#chart'); if (!box || !geo) return;
+  var px = ev.clientX - box.getBoundingClientRect().left;
+  var r = Math.round((px - geo.left) / geo.pw * geo.R) - 1;
+  r = Math.min(geo.R - 1, Math.max(0, r));
+  if (r !== S.chartRound) { S.chartRound = r; desenhar(); }
+}
+
+/* ---------- exportar ---------- */
+function fatosDaPartida(st) {
+  var f = [];
+  if (st.queda) f.push(['Ficou para trás', st.queda.p.nome + (st.queda.de === 1 ? ' liderava' : ' estava em ' + ord(st.queda.de)) + ' na rodada ' + (st.queda.rod + 1) + ' e agora está em ' + ord(st.queda.para) + '.']);
+  if (st.subida) f.push(['Veio de trás', st.subida.p.nome + ' estava em ' + ord(st.subida.de) + ' na rodada ' + (st.subida.rod + 1) + ' e agora está em ' + ord(st.subida.para) + '.']);
+  var pm = st.P.slice().sort(function (a, b) { return b.pior - a.pior; })[0];
+  if (pm && pm.pior > 0) f.push(['Maior mão', pm.nome + ' ficou com ' + pm.pior + ' pontos na mão na rodada ' + (pm.piorRod + 1) + '.']);
+  return f;
+}
+function destaques(st) {
+  if (!st.R) return [];
+  var maxB = Math.max.apply(null, st.P.map(function (p) { return p.batidas; }));
+  var topB = st.P.filter(function (p) { return p.batidas === maxB; }).map(function (p) { return p.nome; });
+  var maxS = Math.max.apply(null, st.P.map(function (p) { return p.seq; }));
+  var topS = st.P.filter(function (p) { return p.seq === maxS; });
+  return [
+    ['Quem mais bateu', lista(topB) + ' (' + plural(maxB, 'batida', 'batidas') + (topB.length > 1 ? ' cada' : '') + ')'],
+    ['Maior sequência batendo', maxS > 1 ? lista(topS.map(function (p) { return p.nome; })) + ', ' + maxS + ' seguidas' + (topS.length === 1 ? ' (rodadas ' + (topS[0].seqFim - maxS + 2) + ' a ' + (topS[0].seqFim + 1) + ')' : '') : 'ninguém bateu duas seguidas'],
+    ['Trocas de liderança', String(st.trocas)]
+  ].concat(fatosDaPartida(st));
+}
+function mediaTxt(p) { return p.media.toFixed(1).replace('.', ','); }
+function resumoTexto(g) {
+  var st = stats(g), L = [];
+  L.push('Pontinho · ' + g.nome);
+  L.push(dataCompleta(g.criadaEm) + ' · ' + (st.R ? plural(st.R, 'rodada', 'rodadas') : 'nenhuma rodada') + ' · ' + (g.encerradaEm ? 'encerrada' : 'em andamento'));
+  L.push('', 'PLACAR (menos pontos ganha)');
+  st.ordem.forEach(function (p) { L.push(ord(p.posAtual) + ' ' + p.nome + ': ' + plural(p.total, 'ponto', 'pontos')); });
+  if (!st.R) return L.join('\n');
+  L.push('', 'QUANTAS VEZES CADA UM BATEU');
+  st.P.slice().sort(function (a, b) { return b.batidas - a.batidas || a.i - b.i; }).forEach(function (p) { L.push(p.nome + ': ' + p.batidas); });
+  L.push('', 'DESTAQUES');
+  destaques(st).forEach(function (d) { L.push(d[0] + ': ' + d[1]); });
+  L.push('', 'POR JOGADOR');
+  st.ordem.forEach(function (p) { L.push(p.nome + ': maior sequência batendo ' + p.seq + ', ' + plural(p.lider, 'rodada', 'rodadas') + ' na frente, maior mão ' + p.pior + ', média de ' + mediaTxt(p) + ' por rodada'); });
+  L.push('', 'RODADA A RODADA (pontos acumulados)');
+  g.rodadas.forEach(function (rd, r) {
+    var quem = st.P.find(function (p) { return p.id === rd.bateu; });
+    L.push((r + 1) + '. bateu ' + (quem ? quem.nome : '?') + ' · ' + st.P.filter(function (p) { return p.cum[r] != null; }).map(function (p) { return p.nome + ' ' + p.cum[r]; }).join(', '));
+  });
+  return L.join('\n');
+}
+function csvCampo(v) { v = String(v == null ? '' : v); return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function planilhaCSV(g) {
+  var st = stats(g), L = [], nomes = st.P.map(function (p) { return p.nome; });
+  var linha = function (campos) { L.push(campos.map(csvCampo).join(';')); };
+  linha(['Pontinho', g.nome]); linha(['Data', dataCompleta(g.criadaEm)]); linha(['Situação', g.encerradaEm ? 'Encerrada' : 'Em andamento']); linha(['Rodadas', st.R]);
+  L.push(''); linha(['PLACAR']); linha(['Posição', 'Jogador', 'Pontos']);
+  st.ordem.forEach(function (p) { linha([p.posAtual, p.nome, p.total]); });
+  L.push(''); linha(['ESTATÍSTICAS POR JOGADOR']); linha(['Jogador', 'Batidas', 'Maior sequência batendo', 'Rodadas na frente', 'Maior mão', 'Média por rodada']);
+  st.ordem.forEach(function (p) { linha([p.nome, p.batidas, p.seq, p.lider, p.pior, mediaTxt(p)]); });
+  L.push(''); linha(['DESTAQUES']);
+  destaques(st).forEach(function (d) { linha(d); });
+  L.push(''); linha(['PONTOS DA MÃO EM CADA RODADA']); linha(['Rodada', 'Bateu'].concat(nomes));
+  g.rodadas.forEach(function (rd, r) {
+    var quem = st.P.find(function (p) { return p.id === rd.bateu; });
+    linha([r + 1, quem ? quem.nome : ''].concat(st.P.map(function (p) { var v = p.ptsRod[r]; return v == null ? '' : v === 'bateu' ? 0 : v; })));
+  });
+  linha(['Total', ''].concat(st.P.map(function (p) { return p.total; })));
+  L.push(''); linha(['PONTOS ACUMULADOS']); linha(['Rodada'].concat(nomes));
+  g.rodadas.forEach(function (rd, r) { linha([r + 1].concat(st.P.map(function (p) { return p.cum[r] == null ? '' : p.cum[r]; }))); });
+  L.push(''); linha(['CARTAS QUE SOBRARAM NA MÃO']); linha(['Rodada', 'Hora', 'Bateu', 'Jogador', 'Cartas', 'Pontos']);
+  g.rodadas.forEach(function (rd, r) {
+    var quem = st.P.find(function (p) { return p.id === rd.bateu; });
+    st.P.forEach(function (p) {
+      if (p.ptsRod[r] == null || p.id === rd.bateu) return;
+      var m = (rd.maos && rd.maos[p.id]) || { pontos: 0 }, d = descMao(m);
+      linha([r + 1, horaCurta(rd.em), quem ? quem.nome : '', p.nome, d.indexOf(' = ') > 0 ? d.split(' = ')[0] : 'total digitado', m.pontos]);
+    });
+  });
+  L.push(''); linha(['POSIÇÃO AO FIM DE CADA RODADA']); linha(['Rodada'].concat(nomes));
+  g.rodadas.forEach(function (rd, r) { linha([r + 1].concat(st.P.map(function (p) { return p.pos[r] == null ? '' : p.pos[r]; }))); });
+  return '﻿' + L.join('\r\n');
+}
+function nomeArquivo(g) {
+  var s = String(g.nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  return 'pontinho-' + (s || 'partida');
+}
+var capDownloads = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(function () { return null; }) : null;
+function baixar(nome, texto, mime) {
+  if (capDownloads) return capDownloads.then(function (cap) {
+    if (!cap || typeof cap.save !== 'function') return Promise.reject({ code: 'unavailable' });
+    return cap.save({ filename: nome, data: texto });
+  });
+  return new Promise(function (ok) {
+    var url = URL.createObjectURL(new Blob([texto], { type: mime })), a = document.createElement('a');
+    a.href = url; a.download = nome; a.style.display = 'none'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000); ok('link');
+  });
+}
+/* ---------- imagem da partida ---------- */
+var IMG = { W: 1080, P: 56, bg: '#FFFFFF', ink: '#1B1B1F', muted: '#5B6168', line: '#D3DAD6', grid: '#E3E7E4', green: '#0F6B4F', tint: '#E3F1EA', red: '#C8102E',
+  series: ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'], extra: '#898781' };
+var NAIPES = { S: 'M12 2C8 7 3 10 3 14.2a4.3 4.3 0 0 0 7.6 2.4c-.2 2.2-1 3.8-2.6 5.4h8c-1.6-1.6-2.4-3.2-2.6-5.4a4.3 4.3 0 0 0 7.6-2.4C21 10 16 7 12 2z',
+  H: 'M12 21C5 15 2 11.5 2 7.8a5 5 0 0 1 10-1.6a5 5 0 0 1 10 1.6C22 11.5 19 15 12 21z', D: 'M12 2l8 10-8 10-8-10z', C: 'M12 11c0 5-1.4 8.4-3.6 11h7.2C13.4 19.4 12 16 12 11z' };
+function fD(px) { return "800 " + px + "px 'Bricolage Grotesque', 'Trebuchet MS', sans-serif"; }
+function fB(px, forte) { return (forte ? '700 ' : '400 ') + px + "px 'Atkinson Hyperlegible', Verdana, sans-serif"; }
+function corImg(i) { return i < 8 ? IMG.series[i] : IMG.extra; }
+function horaCurta(iso) { var d = new Date(iso); if (isNaN(d)) return ''; return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+function descMao(m) {
+  if (!m) return '0';
+  var cs = CARTAS.filter(function (c) { return m.cartas && m.cartas[c.k]; });
+  if (m.manual || !cs.length) return m.pontos + ' (total digitado)';
+  return cs.map(function (c) { return (c.k === 'JK' ? 'coringa' : c.r) + (m.cartas[c.k] > 1 ? '×' + m.cartas[c.k] : ''); }).join(', ') + ' = ' + m.pontos;
+}
+function pintarPartida(ctx, g, semCartas) {
+  var W = IMG.W, P = IMG.P, CW = W - 2 * P, st = stats(g), y = P;
+  function txt(s, x, yy, fonte, c, al) { ctx.font = fonte; ctx.fillStyle = c || IMG.ink; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, yy); }
+  function corta(s, fonte, maxW) { ctx.font = fonte; if (ctx.measureText(s).width <= maxW) return s; var t = s; while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; }
+  function quebra(partes, x, yy, maxW, lh) {
+    var cx = x;
+    partes.forEach(function (pt) {
+      pt[0].split(' ').forEach(function (w) {
+        if (!w) return;
+        ctx.font = pt[1];
+        if (cx > x && cx + ctx.measureText(w).width > x + maxW) { cx = x; yy += lh; }
+        txt(w, cx, yy, pt[1], pt[2]); cx += ctx.measureText(w + ' ').width;
+      });
+    });
+    return yy;
+  }
+  function regua(yy, c, e) { ctx.fillStyle = c || IMG.line; ctx.fillRect(P, yy, CW, e || 2); }
+  function ponto(x, yy, r, c) { ctx.beginPath(); ctx.arc(x, yy, r, 0, Math.PI * 2); ctx.fillStyle = c; ctx.fill(); }
+  function caixa(x, yy, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, yy); ctx.arcTo(x + w, yy, x + w, yy + h, r); ctx.arcTo(x + w, yy + h, x, yy + h, r); ctx.arcTo(x, yy + h, x, yy, r); ctx.arcTo(x, yy, x + w, yy, r); ctx.closePath(); }
+  function naipe(k, x, yy, e, c) {
+    ctx.save(); ctx.translate(x, yy); ctx.scale(e, e); ctx.fillStyle = c;
+    if (k === 'C') { [[12, 7], [6.6, 13.6], [17.4, 13.6]].forEach(function (o) { ctx.beginPath(); ctx.arc(o[0], o[1], 4.6, 0, Math.PI * 2); ctx.fill(); }); }
+    ctx.fill(new Path2D(NAIPES[k])); ctx.restore();
+  }
+  function titulo(s, sub) { y += 62; txt(s, P, y, fD(34)); if (sub) { ctx.font = fD(34); txt(sub, P + ctx.measureText(s).width + 16, y, fB(23), IMG.muted); } y += 22; }
+
+  ctx.fillStyle = IMG.bg; ctx.fillRect(0, 0, W, ctx.canvas.height);
+  txt('Pontinho', P, y + 52, fD(64));
+  ctx.font = fD(64); var wx = P + ctx.measureText('Pontinho').width + 22;
+  [['S', IMG.ink], ['H', IMG.red], ['C', IMG.ink], ['D', IMG.red]].forEach(function (n, i) { naipe(n[0], wx + i * 40, y + 18, 1.45, n[1]); });
+  y += 76; regua(y, IMG.ink, 4); y += 62;
+  y = quebra([[g.nome, fD(44), IMG.ink]], P, y, CW, 52); y += 40;
+  txt(dataCompleta(g.criadaEm) + ' · ' + (st.R ? plural(st.R, 'rodada', 'rodadas') : 'nenhuma rodada') + ' · ' + (g.encerradaEm ? 'encerrada' : 'em andamento'), P, y, fB(26), IMG.muted);
+
+  titulo('Placar', 'menos pontos ganha');
+  st.ordem.forEach(function (p) {
+    if (st.R && p.posAtual === 1) { caixa(P, y, CW, 66, 14); ctx.fillStyle = IMG.tint; ctx.fill(); }
+    var b = y + 45;
+    txt(ord(p.posAtual), P + 20, b, fD(34)); ponto(P + 118, b - 11, 10, corImg(p.i));
+    txt(corta(p.nome, fB(32, true), CW - 330), P + 142, b, fB(32, true));
+    txt(String(p.total), P + CW - 20, b + 4, fD(46), IMG.ink, 'right');
+    y += 74;
+  });
+  if (st.R) {
+    titulo('Quantas vezes cada um bateu', 'em ' + plural(st.R, 'rodada', 'rodadas'));
+    var maxB = Math.max.apply(null, st.P.map(function (p) { return p.batidas; })), x0 = P + 270, bw = CW - 270 - 70;
+    st.P.slice().sort(function (a, b) { return b.batidas - a.batidas || a.i - b.i; }).forEach(function (p) {
+      ponto(P + 12, y + 23, 10, corImg(p.i)); txt(corta(p.nome, fB(28, true), 220), P + 36, y + 33, fB(28, true));
+      var w = maxB ? Math.round(bw * p.batidas / maxB) : 0;
+      ctx.fillStyle = IMG.muted; ctx.fillRect(x0 - 2, y + 2, 2, 42);
+      if (w > 0) { ctx.beginPath(); ctx.moveTo(x0, y + 9); ctx.arcTo(x0 + w, y + 9, x0 + w, y + 37, 7); ctx.arcTo(x0 + w, y + 37, x0, y + 37, 7); ctx.lineTo(x0, y + 37); ctx.closePath(); ctx.fillStyle = IMG.green; ctx.fill(); }
+      txt(String(p.batidas), x0 + w + 14, y + 35, fD(32));
+      y += 52;
+    });
+
+    titulo('Destaques');
+    destaques(st).forEach(function (d) { y += 36; y = quebra([[d[0] + ':', fB(26, true), IMG.ink], [d[1], fB(26), IMG.ink]], P, y, CW, 36); y += 4; });
+
+    titulo('Pontos a cada rodada', 'quem está mais embaixo está ganhando');
+    var R = st.R, top = y + 14, left = P + 70, right = 200, ph = 420, pw = CW - 70 - right;
+    var maxV = Math.max.apply(null, st.P.map(function (p) { return p.total; }));
+    var passoY = maxV > 0 ? passoBonito(maxV) : 5, maxY = maxV > 0 ? Math.ceil(maxV / passoY) * passoY : 10;
+    var X = function (k) { return left + k * pw / R; }, Y = function (v) { return top + ph - v / maxY * ph; };
+    for (var v = 0; v <= maxY + 0.001; v += passoY) { ctx.fillStyle = IMG.grid; ctx.fillRect(left, Math.round(Y(v)) - 1, pw, 2); txt(String(v), left - 14, Y(v) + 8, fB(22), IMG.muted, 'right'); }
+    var passo = Math.max(1, Math.ceil(R / 14));
+    for (var k = 1; k <= R; k++) if ((R - k) % passo === 0) txt(String(k), X(k), top + ph + 34, fB(22), IMG.muted, 'center');
+    ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    st.P.forEach(function (pl) {
+      ctx.beginPath(); ctx.moveTo(X(pl.desde), Y(pl.base));
+      for (var r = pl.desde; r < R; r++) ctx.lineTo(X(r + 1), Y(pl.cum[r]));
+      ctx.strokeStyle = corImg(pl.i); ctx.stroke();
+    });
+    var rot = [];
+    st.P.forEach(function (pl) { ponto(X(R), Y(pl.total), 12, IMG.bg); ponto(X(R), Y(pl.total), 9, corImg(pl.i)); rot.push({ y0: Y(pl.total), y: Y(pl.total), nome: pl.nome }); });
+    rot.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < rot.length; i++) if (rot[i].y - rot[i - 1].y < 30) rot[i].y = rot[i - 1].y + 30;
+    var sobra = rot[rot.length - 1].y - (top + ph + 6);
+    if (sobra > 0) { rot[rot.length - 1].y -= sobra; for (var j = rot.length - 2; j >= 0; j--) if (rot[j + 1].y - rot[j].y < 30) rot[j].y = rot[j + 1].y - 30; }
+    rot.forEach(function (l) {
+      if (Math.abs(l.y - l.y0) > 4) { ctx.beginPath(); ctx.moveTo(X(R) + 13, l.y0); ctx.lineTo(X(R) + 28, l.y); ctx.lineWidth = 2; ctx.strokeStyle = IMG.muted; ctx.stroke(); }
+      txt(corta(l.nome, fB(24), right - 44), X(R) + 34, l.y + 8, fB(24));
+    });
+    y = top + ph + 44;
+
+    titulo('Cada jogador');
+    var cab = [['Batidas', ''], ['Maior', 'sequência'], ['Rodadas', 'na frente'], ['Maior', 'mão'], ['Média por', 'rodada']], nw = 300, cw = (CW - nw) / 5;
+    cab.forEach(function (c, i) { var xr = P + nw + (i + 1) * cw - 8; if (c[1]) { txt(c[0], xr, y + 22, fB(20, true), IMG.muted, 'right'); txt(c[1], xr, y + 46, fB(20, true), IMG.muted, 'right'); } else txt(c[0], xr, y + 46, fB(20, true), IMG.muted, 'right'); });
+    txt('Jogador', P + 8, y + 46, fB(20, true), IMG.muted);
+    y += 58; regua(y, IMG.ink, 2);
+    st.ordem.forEach(function (p) {
+      ponto(P + 18, y + 26, 9, corImg(p.i)); txt(corta(p.nome, fB(26, true), nw - 50), P + 38, y + 35, fB(26, true));
+      [p.batidas, p.seq, p.lider, p.pior, mediaTxt(p)].forEach(function (val, i) { txt(String(val), P + nw + (i + 1) * cw - 8, y + 35, fB(26), IMG.ink, 'right'); });
+      y += 52; regua(y, IMG.line, 1);
+    });
+
+    titulo('Rodadas', 'pontos que sobraram na mão');
+    var N = st.P.length, c0 = 120, cw2 = (CW - c0) / N;
+    txt('Rodada', P + 8, y + 30, fB(20, true), IMG.muted);
+    st.P.forEach(function (p, i) { txt(corta(p.nome, fB(21, true), cw2 - 12), P + c0 + (i + 1) * cw2 - 8, y + 30, fB(21, true), IMG.ink, 'right'); });
+    y += 42; regua(y, IMG.ink, 2);
+    g.rodadas.forEach(function (rd, r) {
+      txt(String(r + 1), P + 8, y + 30, fB(24, true));
+      st.P.forEach(function (p, i) {
+        var val = p.ptsRod[r], xr = P + c0 + (i + 1) * cw2 - 8;
+        if (val == null) txt('–', xr, y + 30, fB(24), IMG.muted, 'right');
+        else if (val === 'bateu') txt('bateu', xr, y + 30, fB(22, true), IMG.green, 'right');
+        else txt(String(val), xr, y + 30, fB(24), IMG.ink, 'right');
+      });
+      y += 42; regua(y, IMG.line, 1);
+    });
+    regua(y, IMG.ink, 2);
+    txt('Total', P + 8, y + 36, fB(24, true));
+    st.P.forEach(function (p, i) { txt(String(p.total), P + c0 + (i + 1) * cw2 - 8, y + 36, fD(26), IMG.ink, 'right'); });
+    y += 48;
+
+    titulo('Acumulado', 'total de cada um ao fim da rodada');
+    txt('Rodada', P + 8, y + 30, fB(20, true), IMG.muted);
+    st.P.forEach(function (p, i) { txt(corta(p.nome, fB(21, true), cw2 - 12), P + c0 + (i + 1) * cw2 - 8, y + 30, fB(21, true), IMG.ink, 'right'); });
+    y += 42; regua(y, IMG.ink, 2);
+    g.rodadas.forEach(function (rd, r) {
+      txt(String(r + 1), P + 8, y + 30, fB(24, true));
+      st.P.forEach(function (p, i) {
+        var xr = P + c0 + (i + 1) * cw2 - 8;
+        if (p.cum[r] == null) txt('–', xr, y + 30, fB(24), IMG.muted, 'right'); else txt(String(p.cum[r]), xr, y + 30, fB(24), IMG.ink, 'right');
+      });
+      y += 42; regua(y, IMG.line, 1);
+    });
+    var tarde = st.P.filter(function (p) { return p.desde > 0; });
+    tarde.forEach(function (p) { y += 34; txt(p.nome + ' entrou na rodada ' + (p.desde + 1) + ' com ' + plural(p.base, 'ponto', 'pontos') + '.', P, y, fB(22), IMG.muted); });
+
+    if (!semCartas) {
+      titulo('Cartas que sobraram na mão', 'rodada por rodada');
+      g.rodadas.forEach(function (rd, r) {
+        var quem = st.P.find(function (p) { return p.id === rd.bateu; }), hora = horaCurta(rd.em), partes = [];
+        y += 40; txt('Rodada ' + (r + 1) + (hora ? ' · ' + hora : '') + ' · bateu ' + (quem ? quem.nome : '?'), P, y, fB(24, true));
+        st.P.forEach(function (p) {
+          if (p.ptsRod[r] == null || p.id === rd.bateu) return;
+          if (partes.length) partes.push(['·', fB(23), IMG.muted]);
+          partes.push([p.nome + ':', fB(23, true), IMG.ink]); partes.push([descMao(rd.maos && rd.maos[p.id]), fB(23), IMG.ink]);
+        });
+        y += 34; y = quebra(partes, P, y, CW, 32); y += 14; regua(y, IMG.line, 1);
+      });
+    } else { y += 40; txt('As cartas de cada rodada não couberam na imagem; elas estão na planilha (Outros formatos).', P, y, fB(22), IMG.muted); }
+  }
+  y += 34; regua(y); y += 36;
+  txt('Pontos das cartas na mão: coringa 20 · ás 15 · K 13 · Q 12 · J 11 · demais, o número da carta', P, y, fB(19), IMG.muted);
+  return y + P - 16;
+}
+function gerarImagem(g) {
+  var fontes = Promise.resolve();
+  if (document.fonts && document.fonts.load) {
+    fontes = Promise.race([
+      Promise.all([document.fonts.load(fD(40)), document.fonts.load(fB(26)), document.fonts.load(fB(26, true))]).catch(function () { /* usa as fontes do aparelho */ }),
+      new Promise(function (r) { setTimeout(r, 1500); })
+    ]);
+  }
+  return fontes.then(function () {
+    var m = document.createElement('canvas'); m.width = IMG.W; m.height = 10;
+    var h = Math.ceil(pintarPartida(m.getContext('2d'), g, false)), curta = h > 15000;
+    if (curta) h = Math.ceil(pintarPartida(m.getContext('2d'), g, true));
+    var c = document.createElement('canvas'); c.width = IMG.W; c.height = h;
+    pintarPartida(c.getContext('2d'), g, curta);
+    return new Promise(function (ok, erro) { c.toBlob(function (b) { if (b) ok(b); else erro(new Error('sem imagem')); }, 'image/png'); });
+  });
+}
+var expAtual = null;
+function limparExp() { if (expAtual && expAtual.url) URL.revokeObjectURL(expAtual.url); expAtual = null; }
+function podeCompartilhar() { return !window.claude && typeof navigator.share === 'function' && typeof navigator.canShare === 'function'; }
+function folhaExportar(g, d) {
+  var pronta = !!(expAtual && expAtual.gid === g.id), dis = pronta ? '' : ' disabled';
+  return '<div class="sheet-head"><h2>Exportar partida</h2><button class="btn quiet" data-act="fechar">Fechar</button></div>' +
+    '<p><strong>' + esc(g.nome) + '</strong><br><span class="muted small">Uma imagem com todos os dados da partida: placar, batidas, destaques, gráfico de pontos, tabela de cada jogador, os pontos e o acumulado de cada rodada e as cartas que sobraram na mão.</span></p>' +
+    '<div class="rowline"><button class="btn primary" id="exp-baixar" data-act="exp-img"' + dis + '>Baixar imagem</button>' +
+    (podeCompartilhar() ? '<button class="btn" id="exp-comp" data-act="exp-compartilhar"' + dis + '>Compartilhar imagem</button>' : '') + '</div>' +
+    '<p class="small" id="exp-msg" role="status">' + esc(d.msg || (pronta ? '' : 'Gerando a imagem…')) + '</p>' +
+    '<img id="exp-img" class="exp-img" alt="Imagem com o resumo da partida ' + esc(g.nome) + '"' + (pronta ? ' src="' + expAtual.url + '"' : ' hidden') + '>' +
+    '<details class="outros"><summary>Outros formatos</summary><div class="stack">' +
+    '<div class="rowline"><button class="btn" data-act="exp-csv">Baixar planilha (CSV)</button><button class="btn" data-act="exp-copiar">Copiar resumo em texto</button></div>' +
+    '<div class="field"><label for="exp-texto">Resumo em texto</label><textarea id="exp-texto" readonly rows="12">' + esc(resumoTexto(g)) + '</textarea></div></div></details>';
+}
+
+/* ---------- folhas: rodada, nova partida, novo jogador ---------- */
+function abrirRodada(idx) {
+  var g = cur(); if (!g) return;
+  var editando = idx != null, i = editando ? idx : g.rodadas.length, d = { tipo: 'rodada', idx: i, editando: editando, bateu: null, maos: {}, aberto: null, id: null, em: null };
+  ativosEm(g, i).forEach(function (j) { d.maos[j.id] = { cartas: {}, manual: '' }; });
+  if (editando) {
+    var rd = g.rodadas[i]; d.bateu = rd.bateu; d.id = rd.id; d.em = rd.em;
+    Object.keys(rd.maos || {}).forEach(function (pid) {
+      if (!d.maos[pid]) return;
+      var m = rd.maos[pid];
+      d.maos[pid] = m.manual ? { cartas: {}, manual: String(m.pontos) } : { cartas: clone(m.cartas || {}), manual: '' };
+    });
+  }
+  S.draft = d; S.confirm = null; renderSheet();
+}
+function rodadaValida(g, d) {
+  if (!d.bateu) return false;
+  return ativosEm(g, d.idx).every(function (j) { return j.id === d.bateu || pontosDaMao(d.maos[j.id]) > 0; });
+}
+function folhaRodada(g, d) {
+  var act = ativosEm(g, d.idx);
+  var h = '<div class="sheet-head"><h2>' + (d.editando ? 'Corrigir rodada ' : 'Rodada ') + (d.idx + 1) + '</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>';
+  h += '<section class="stack"><h3 id="q-bateu">Quem bateu?</h3><div class="chips" role="group" aria-labelledby="q-bateu">';
+  act.forEach(function (j) { h += '<button class="chip" id="bt-' + esc(j.id) + '" data-act="bateu" data-id="' + esc(j.id) + '" aria-pressed="' + (d.bateu === j.id) + '">' + esc(j.nome) + '</button>'; });
+  h += '</div></section>';
+  if (d.bateu) {
+    h += '<section class="stack"><h3>O que sobrou na mão de cada um</h3><p class="muted small">Toque nas cartas que ficaram na mão. O coringa vale 20, o ás 15, K 13, Q 12, J 11 e as outras valem o número.</p>';
+    act.forEach(function (j) {
+      if (j.id === d.bateu) return;
+      var m = d.maos[j.id], pts = pontosDaMao(m), aberto = d.aberto === j.id;
+      h += '<div class="hand"><button class="hand-head" id="hd-' + esc(j.id) + '" data-act="abrir-mao" data-id="' + esc(j.id) + '" aria-expanded="' + aberto + '"><span class="nome">' + esc(j.nome) + '</span>' +
+        '<span id="pts-' + esc(j.id) + '" class="hand-pts' + (pts ? '' : ' falta') + '">' + (pts ? pts + ' pts' : 'falta lançar') + '</span></button>';
+      if (aberto) {
+        h += '<div class="hand-body"><div class="picked" id="pk-' + esc(j.id) + '" aria-label="Cartas lançadas">';
+        var tem = false;
+        CARTAS.forEach(function (c) {
+          var n = (m.cartas || {})[c.k] || 0; if (!n) return; tem = true;
+          h += '<button class="pk" data-act="tirar" data-id="' + esc(j.id) + '" data-k="' + c.k + '" aria-label="Tirar um ' + c.r + '">' + (c.k === 'JK' ? STAR : c.r) + (n > 1 ? ' ×' + n : '') + '<span class="x">tirar</span></button>';
+        });
+        if (!tem) h += '<span class="muted small">Nenhuma carta lançada ainda.</span>';
+        h += '</div><div class="pad">';
+        CARTAS.forEach(function (c) {
+          h += '<button class="cardbtn" id="cb-' + esc(j.id) + '-' + c.k + '" data-act="carta" data-id="' + esc(j.id) + '" data-k="' + c.k + '" aria-label="' + (c.k === 'JK' ? 'Coringa' : c.r) + ', ' + c.v + ' pontos">' +
+            '<span class="r">' + (c.k === 'JK' ? STAR : c.r) + '</span>' + (c.v > 10 ? '<span class="v">vale ' + c.v + '</span>' : '') + '</button>';
+        });
+        h += '</div><div class="field"><label for="man-' + esc(j.id) + '">Ou digite o total de pontos</label><input type="number" inputmode="numeric" min="0" step="1" id="man-' + esc(j.id) + '" data-in="manual" data-id="' + esc(j.id) + '" value="' + esc(m.manual) + '"></div>' +
+          '<div><button class="btn" data-act="prox-mao" data-id="' + esc(j.id) + '">Próximo jogador</button></div></div>';
+      }
+      h += '</div>';
+    });
+    h += '</section>';
+  }
+  h += '<div class="sheet-foot"><button class="btn primary wide" id="salvar-rodada" data-act="salvar-rodada"' + (rodadaValida(g, d) ? '' : ' disabled') + '>Salvar rodada</button>';
+  if (d.editando) {
+    h += S.confirm === 'apagar-rodada'
+      ? '<div class="rowline"><span>Apagar esta rodada do placar?</span><button class="btn danger" data-act="apagar-rodada-sim">Apagar</button><button class="btn quiet" data-act="cancelar-conf-folha">Manter</button></div>'
+      : '<div><button class="link danger-text" data-act="apagar-rodada">Apagar esta rodada</button></div>';
+  }
+  return h + '</div>';
+}
+function folhaNova(d) {
+  var h = '<div class="sheet-head"><h2>Nova partida</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
+    '<div class="field"><label for="np-nome">Nome da partida</label><input type="text" id="np-nome" data-in="np-nome" maxlength="40" value="' + esc(d.nome) + '"></div>' +
+    '<section class="stack"><h3>Quem está na mesa</h3><p class="muted small">Coloque os nomes na ordem em que as pessoas estão sentadas.</p>';
+  d.nomes.forEach(function (n, i) {
+    h += '<div class="inline"><input type="text" id="np-j' + i + '" data-in="np-jog" data-i="' + i + '" maxlength="24" placeholder="Jogador ' + (i + 1) + '" aria-label="Nome do jogador ' + (i + 1) + '" value="' + esc(n) + '">' +
+      (d.nomes.length > 2 ? '<button class="icon-btn" data-act="np-tirar" data-i="' + i + '" aria-label="Tirar o jogador ' + (i + 1) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>' : '') + '</div>';
+  });
+  if (d.nomes.length < MAX_JOGADORES) h += '<div><button class="btn" data-act="np-mais">Mais um jogador</button></div>';
+  h += '</section><div class="sheet-foot"><p class="muted small" id="np-aviso">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="np-criar">Começar a partida</button></div>';
+  return h;
+}
+function folhaJogador(g, d) {
+  return '<div class="sheet-head"><h2>Chegou mais alguém</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
+    '<p>Quem chega agora entra a partir da rodada ' + (g.rodadas.length + 1) + '.</p>' +
+    '<div class="field"><label for="nj-nome">Nome</label><input type="text" id="nj-nome" data-in="nj-nome" maxlength="24" value="' + esc(d.nome) + '"></div>' +
+    '<div class="field"><label for="nj-base">Entra com quantos pontos?</label><input type="number" inputmode="numeric" min="0" step="1" id="nj-base" data-in="nj-base" value="' + esc(d.base) + '"></div>' +
+    '<div class="sheet-foot"><p class="muted small">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="nj-criar">Colocar na mesa</button></div>';
+}
+function renderSheet(focoId) {
+  var el = $('#sheet'), d = S.draft, g = cur();
+  if (!d) { el.hidden = true; el.innerHTML = ''; return; }
+  var gExp = d.tipo === 'exportar' ? S.games.find(function (x) { return x.id === d.gid; }) : null;
+  if (d.tipo === 'exportar' && !gExp) { S.draft = null; el.hidden = true; el.innerHTML = ''; return; }
+  var corpo = d.tipo === 'rodada' ? folhaRodada(g, d) : d.tipo === 'nova' ? folhaNova(d) : d.tipo === 'exportar' ? folhaExportar(gExp, d) : folhaJogador(g, d);
+  var eraOculto = el.hidden;
+  el.innerHTML = '<div class="wrap" role="dialog" aria-modal="true">' + corpo + '</div>';
+  el.hidden = false;
+  if (eraOculto) el.scrollTop = 0;
+  var f = focoId && document.getElementById(focoId);
+  if (f) f.focus({ preventScroll: true });
+}
+function avisarExp(m) { var e = $('#exp-msg'); if (e) e.textContent = m; if (S.draft && S.draft.tipo === 'exportar') S.draft.msg = m; }
+function fecharFolha() { S.draft = null; S.confirm = null; limparExp(); renderSheet(); }
+
+/* ---------- ações ---------- */
+function acao(a, t) {
+  var g = cur(), d = S.draft, id = t.getAttribute('data-id');
+  switch (a) {
+    case 'tab': S.tab = t.getAttribute('data-tab'); S.confirm = null; renderView(); $('#view').scrollTop = 0; break;
+    case 'nova': {
+      var ult = ordenadas().find(function (x) { return !x.exemplo; });
+      var nomes = ult ? ult.jogadores.map(function (j) { return j.nome; }) : ['', '', '', ''];
+      S.draft = { tipo: 'nova', nome: 'Partida de ' + dataCurta(new Date().toISOString()), nomes: nomes, erro: '' }; renderSheet('np-j0'); break;
+    }
+    case 'np-mais': d.nomes.push(''); renderSheet('np-j' + (d.nomes.length - 1)); break;
+    case 'np-tirar': d.nomes.splice(Number(t.getAttribute('data-i')), 1); renderSheet(); break;
+    case 'np-criar': {
+      var limpos = d.nomes.map(function (n) { return n.trim(); }).filter(Boolean);
+      if (limpos.length < 2) { d.erro = 'Coloque o nome de pelo menos dois jogadores.'; renderSheet(); break; }
+      var novo = { id: uid('p'), nome: d.nome.trim() || 'Partida de ' + dataCurta(new Date().toISOString()), criadaEm: new Date().toISOString(), encerradaEm: null,
+        jogadores: limpos.map(function (n, i) { return { id: 'j' + (i + 1), nome: n, desde: 0, base: 0 }; }), rodadas: [] };
+      escolher(novo.id); S.tab = 'placar'; S.draft = null; renderSheet(); commit(novo); break;
+    }
+    case 'jogador': S.draft = { tipo: 'jogador', nome: '', base: '0', erro: '' }; renderSheet('nj-nome'); break;
+    case 'nj-criar': {
+      var nm = d.nome.trim(); if (!nm) { d.erro = 'Escreva o nome de quem chegou.'; renderSheet('nj-nome'); break; }
+      var g2 = clone(g), n = 1; while (g2.jogadores.some(function (j) { return j.id === 'j' + n; })) n++;
+      g2.jogadores.push({ id: 'j' + n, nome: nm, desde: g2.rodadas.length, base: Math.max(0, Math.floor(Number(d.base) || 0)) });
+      S.draft = null; renderSheet(); commit(g2); break;
+    }
+    case 'exemplo': { var ex = clone(EXEMPLO); ex.criadaEm = new Date().toISOString(); escolher(ex.id); S.tab = 'placar'; commit(ex); break; }
+    case 'rodada': abrirRodada(null); break;
+    case 'editar': abrirRodada(Number(t.getAttribute('data-idx'))); break;
+    case 'bateu': {
+      d.bateu = id;
+      var prim = ativosEm(g, d.idx).find(function (j) { return j.id !== id && !pontosDaMao(d.maos[j.id]); });
+      d.aberto = prim ? prim.id : null; renderSheet('bt-' + id); break;
+    }
+    case 'abrir-mao': d.aberto = d.aberto === id ? null : id; renderSheet('hd-' + id); break;
+    case 'prox-mao': {
+      var outros = ativosEm(g, d.idx).filter(function (j) { return j.id !== d.bateu; });
+      var i = outros.findIndex(function (j) { return j.id === id; });
+      var prox = outros.slice(i + 1).concat(outros.slice(0, i)).find(function (j) { return !pontosDaMao(d.maos[j.id]); });
+      d.aberto = prox ? prox.id : null; renderSheet(prox ? 'hd-' + prox.id : 'salvar-rodada'); break;
+    }
+    case 'carta': {
+      var m = d.maos[id], k = t.getAttribute('data-k'); m.manual = ''; m.cartas[k] = (m.cartas[k] || 0) + 1; renderSheet('cb-' + id + '-' + k); break;
+    }
+    case 'tirar': {
+      var m2 = d.maos[id], k2 = t.getAttribute('data-k'); if (m2.cartas[k2] > 1) m2.cartas[k2]--; else delete m2.cartas[k2]; renderSheet('hd-' + id); break;
+    }
+    case 'salvar-rodada': {
+      if (!rodadaValida(g, d)) break;
+      var rd = { id: d.id || uid('r'), bateu: d.bateu, maos: {}, em: d.em || new Date().toISOString() };
+      ativosEm(g, d.idx).forEach(function (j) {
+        if (j.id === d.bateu) return;
+        var mm = d.maos[j.id], man = mm.manual !== '';
+        rd.maos[j.id] = { pontos: pontosDaMao(mm), cartas: man ? {} : mm.cartas, manual: man };
+      });
+      var g3 = clone(g); if (d.editando) g3.rodadas[d.idx] = rd; else g3.rodadas.push(rd);
+      S.chartRound = null; S.draft = null; renderSheet(); commit(g3); break;
+    }
+    case 'apagar-rodada': S.confirm = 'apagar-rodada'; renderSheet(); break;
+    case 'cancelar-conf-folha': S.confirm = null; renderSheet(); break;
+    case 'apagar-rodada-sim': {
+      var g4 = clone(g); g4.rodadas.splice(d.idx, 1);
+      g4.jogadores.forEach(function (j) { if ((j.desde || 0) > d.idx) j.desde--; });
+      S.chartRound = null; S.draft = null; S.confirm = null; renderSheet(); commit(g4); break;
+    }
+    case 'exportar': {
+      var ge = id ? S.games.find(function (x) { return x.id === id; }) : g; if (!ge) break;
+      limparExp(); S.draft = { tipo: 'exportar', gid: ge.id, msg: '' }; renderSheet();
+      gerarImagem(ge).then(function (blob) {
+        if (!S.draft || S.draft.tipo !== 'exportar' || S.draft.gid !== ge.id) return;
+        limparExp(); expAtual = { gid: ge.id, blob: blob, url: URL.createObjectURL(blob) };
+        var im = $('#exp-img'); if (im) { im.src = expAtual.url; im.hidden = false; }
+        ['#exp-baixar', '#exp-comp'].forEach(function (q) { var bt = $(q); if (bt) bt.disabled = false; });
+        avisarExp('');
+      }, function () { avisarExp('Não deu para gerar a imagem neste aparelho. Use os outros formatos abaixo.'); });
+      break;
+    }
+    case 'exp-img': {
+      var gi = S.games.find(function (x) { return x.id === d.gid; }); if (!gi || !expAtual) break;
+      baixar(nomeArquivo(gi) + '.png', expAtual.blob, 'image/png').then(function (r) {
+        avisarExp(r === 'link' ? 'Imagem enviada para os downloads do aparelho.' : 'Imagem salva.');
+      }, function (e) {
+        var c = e && e.code;
+        avisarExp(c === 'declined' ? 'Download cancelado.' : c === 'rate_limited' ? 'Já existe um pedido de download aberto. Responda a ele e tente de novo.' : 'Não deu para baixar aqui. Tente tocar e segurar a imagem para salvar.');
+      });
+      break;
+    }
+    case 'exp-compartilhar': {
+      var gs = S.games.find(function (x) { return x.id === d.gid; }); if (!gs || !expAtual) break;
+      var arq = new File([expAtual.blob], nomeArquivo(gs) + '.png', { type: 'image/png' });
+      if (navigator.canShare({ files: [arq] })) navigator.share({ files: [arq], title: gs.nome }).catch(function () { /* a pessoa fechou o compartilhamento */ });
+      else avisarExp('Este aparelho não compartilha arquivos por aqui. Use Baixar imagem.');
+      break;
+    }
+    case 'exp-copiar': {
+      var ta = $('#exp-texto'), dt = ta.closest('details'); if (dt) dt.open = true;
+      var naMao = function () { ta.focus(); ta.select(); avisarExp('Não deu para copiar sozinho. O texto está selecionado: use o Copiar do aparelho.'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(function () { avisarExp('Resumo copiado. Cole onde quiser enviar.'); }, naMao); else naMao();
+      break;
+    }
+    case 'exp-csv': {
+      var gc = S.games.find(function (x) { return x.id === d.gid; }); if (!gc) break;
+      baixar(nomeArquivo(gc) + '.csv', planilhaCSV(gc), 'text/csv;charset=utf-8').then(function (r) {
+        avisarExp(r === 'link' ? 'Planilha enviada para os downloads do aparelho.' : 'Planilha salva.');
+      }, function (e) {
+        var c = e && e.code;
+        avisarExp(c === 'declined' ? 'Download cancelado.' : c === 'rate_limited' ? 'Já existe um pedido de download aberto. Responda a ele e tente de novo.' : 'Não deu para baixar a planilha aqui. Use o resumo em texto abaixo.');
+      });
+      break;
+    }
+    case 'fechar': fecharFolha(); break;
+    case 'encerrar': { var g5 = clone(g); g5.encerradaEm = new Date().toISOString(); commit(g5); break; }
+    case 'reabrir': { var g6 = clone(g); g6.encerradaEm = null; commit(g6); break; }
+    case 'abrir': escolher(id); S.tab = 'placar'; renderView(); $('#view').scrollTop = 0; break;
+    case 'filtro': { S.filtro.tipo = t.getAttribute('data-f'); S.confirm = null; renderView(); var fb = document.getElementById('f-' + S.filtro.tipo); if (fb) fb.focus(); break; }
+    case 'renomear': {
+      var gr = S.games.find(function (x) { return x.id === id; }); S.confirm = 'renomear:' + id; S.renome = gr ? gr.nome : ''; renderView();
+      var campo = document.getElementById('rn-campo'); if (campo) { campo.focus(); campo.select(); } break;
+    }
+    case 'renomear-sim': {
+      var gx = S.games.find(function (x) { return x.id === id; }), nn = (S.renome || '').trim().slice(0, 40); S.confirm = null;
+      if (gx && nn && nn !== gx.nome) { var g7 = clone(gx); g7.nome = nn; commit(g7); } else renderView();
+      break;
+    }
+    case 'apagar': S.confirm = 'apagar:' + id; renderView(); break;
+    case 'cancelar-conf': S.confirm = null; renderView(); break;
+    case 'apagar-sim': S.confirm = null; apagarPartida(id); break;
+  }
+}
+document.addEventListener('click', function (ev) {
+  var t = ev.target.closest('[data-act]'); if (!t || t.disabled) return;
+  acao(t.getAttribute('data-act'), t);
+});
+function aoDigitar(ev) {
+  var t = ev.target, tipo = t.getAttribute && t.getAttribute('data-in'), d = S.draft;
+  if (t.id === 'rodada-sel') { S.chartRound = Number(t.value) - 1; desenhar(); return; }
+  if (tipo === 'f-de' || tipo === 'f-ate') { S.filtro[tipo === 'f-de' ? 'de' : 'ate'] = t.value; var lp = $('#lista-partidas'); if (lp) lp.innerHTML = listaPartidas(); return; }
+  if (tipo === 'renomear') { S.renome = t.value; return; }
+  if (!tipo || !d) return;
+  if (tipo === 'np-nome') d.nome = t.value;
+  else if (tipo === 'np-jog') d.nomes[Number(t.getAttribute('data-i'))] = t.value;
+  else if (tipo === 'nj-nome') d.nome = t.value;
+  else if (tipo === 'nj-base') d.base = t.value;
+  else if (tipo === 'manual') {
+    var id = t.getAttribute('data-id'), m = d.maos[id]; m.manual = t.value; if (t.value !== '') { m.cartas = {}; var pk = document.getElementById('pk-' + id); if (pk) pk.innerHTML = '<span class="muted small">Total digitado.</span>'; }
+    var pts = pontosDaMao(m), lab = document.getElementById('pts-' + id);
+    if (lab) { lab.textContent = pts ? pts + ' pts' : 'falta lançar'; lab.className = 'hand-pts' + (pts ? '' : ' falta'); }
+    var sv = $('#salvar-rodada'); if (sv) sv.disabled = !rodadaValida(cur(), d);
+  }
+}
+document.addEventListener('input', aoDigitar);
+document.addEventListener('change', aoDigitar);
+document.addEventListener('pointerdown', function (ev) { if (ev.target.closest && ev.target.closest('#chart')) rodadaNoPonto(ev); });
+document.addEventListener('pointermove', function (ev) {
+  if (!ev.target.closest || !ev.target.closest('#chart')) return;
+  if (ev.pointerType === 'mouse' || ev.buttons) rodadaNoPonto(ev);
+});
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape' && S.draft) fecharFolha();
+  if (ev.key === 'Enter' && ev.target.getAttribute && ev.target.getAttribute('data-in') === 'renomear') { var bs = $('[data-act="renomear-sim"]'); if (bs) acao('renomear-sim', bs); }
+});
+if (window.ResizeObserver) { new ResizeObserver(function () { if (S.tab === 'stats' && S.loaded) desenhar(); }).observe($('#view')); }
+
+/* ---------- partida ---------- */
+function comecar(dados) {
+  if (dados && dados.tab) S.tab = dados.tab;
+  renderView(); iniciar();
+}
+var hot = window.claude && window.claude.hot;
+if (hot && typeof hot.snapshot === 'function') { try { hot.snapshot(function () { return { tab: S.tab }; }); } catch (e) { /* segue sem */ } }
+if (hot && typeof hot.ready === 'function') hot.ready(comecar); else comecar((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
