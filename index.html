@@ -308,6 +308,8 @@ var LS = {
   get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
   set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sem armazenamento: segue em memória */ } }
 };
+/* navegadores dentro de outros apps e abas anônimas às vezes não guardam nada: avisamos para não perder a partida */
+var LS_OK = (function () { try { localStorage.setItem('pontinho.teste', '1'); localStorage.removeItem('pontinho.teste'); return true; } catch (e) { return false; } })();
 
 /* ---------- estado ---------- */
 var S = { games: [], loaded: false, mode: 'loading', tab: 'inicial', gameId: null, sheet: null, draft: null, chartRound: null, confirm: null, saveErr: false, syncErr: false, filtro: { tipo: 'todas', de: '', ate: '' }, renome: '' };
@@ -417,7 +419,12 @@ function apagarPartida(id) {
   if (S.mode === 'db') db.collection('partidas').doc(id).delete().catch(function () { S.saveErr = true; renderView(); });
   renderView();
 }
-function escolher(id) { S.gameId = id; S.chartRound = null; LS.set('pontinho.sel', id); }
+function escolher(id) {
+  S.gameId = id; S.chartRound = null; LS.set('pontinho.sel', id);
+  /* quem acompanha fica com o código no endereço: recarregar a página volta para o placar ao vivo */
+  var g = S.games.find(function (x) { return x.id === id; }), busca = g && g.aoVivo && !g.aoVivo.lanca && !g.aoVivo.fim ? '?ao-vivo=' + g.aoVivo.codigo : '';
+  try { if (location.search !== busca) history.replaceState(null, '', location.pathname + busca + location.hash); } catch (e) { /* segue com o endereço como está */ }
+}
 
 /* ---------- placar ao vivo ----------
    Um celular lança e os outros acompanham pelo link. A partida vai para o Firebase em ao-vivo/{código}:
@@ -428,7 +435,7 @@ var FB_CONFIG = { apiKey: 'AIzaSyDD_y6H-zMnQb8x0mPl_eeAq5sMd5gxHVw', authDomain:
   storageBucket: 'pontinho-6d554.firebasestorage.app', messagingSenderId: '611348197932', appId: '1:611348197932:web:f42461e1081092635e5789' };
 var FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, erro: false, aviso: '' };
+var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, visto: {}, enviado: {}, erro: false, aviso: '' };
 var LETRAS_COD = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function carregarScript(src) {
   return new Promise(function (ok, erro) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
@@ -458,8 +465,24 @@ function marcarErroAV(sim) { if (AV.erro !== sim) { AV.erro = sim; renderView();
 function enviarAoVivo(g) {
   aoVivoPronto().then(function () {
     return docAV(g.aoVivo.codigo).update({ partida: paraEnviar(g), atualizadoEm: agoraFB() });
-  }).then(function () { marcarErroAV(false); }, function () { marcarErroAV(true); });
+  }).then(function () { AV.enviado[g.aoVivo.codigo] = Date.now(); AV.erro = false; renderView(); }, function (e) {
+    if (e && e.code === 'permission-denied') AV.aviso = 'Este celular não está mais autorizado a lançar esta partida ao vivo. Peça para quem lança agora passar a vez.';
+    marcarErroAV(true);
+  });
 }
+/* Reforço para quando a conexão ao vivo fica parada sem avisar (comum em navegadores dentro de outros apps):
+   quem acompanha também busca o placar de tempos em tempos e sempre que volta para a tela. */
+function buscarAoVivo() {
+  if (!AV.fs) return;
+  S.games.forEach(function (g) {
+    if (!g.aoVivo || g.aoVivo.lanca || g.aoVivo.fim) return;
+    var cod = g.aoVivo.codigo;
+    docAV(cod).get({ source: 'server' }).then(function (snap) { recebeuAoVivo(cod, snap); }, function () { marcarErroAV(true); });
+  });
+}
+setInterval(function () { if (document.visibilityState === 'visible') buscarAoVivo(); }, 15000);
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') buscarAoVivo(); });
+function horaSeg(ms) { var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
 function ligarAoVivo(g) {
   return aoVivoPronto().then(function () {
     var cod = novoCodigo();
@@ -500,9 +523,11 @@ function recebeuAoVivo(cod, snap) {
   }
   var d = snap.data(), lanca = d.dono === AV.uid, eraLanca = !!g.aoVivo.lanca;
   AV.docs[cod] = d;
+  if (!snap.metadata.fromCache) AV.visto[cod] = Date.now();
   if (lanca && eraLanca) { renderView(); return; } /* quem lança é a fonte da partida; aqui só chegam pedidos */
   var g2 = clone(d.partida || {}); g2.id = g.id; g2.jogadores = g2.jogadores || []; g2.rodadas = g2.rodadas || [];
   g2.aoVivo = { codigo: cod, lanca: lanca };
+  if (lanca === eraLanca && !g.aoVivo.carregando && JSON.stringify(paraEnviar(g)) === JSON.stringify(paraEnviar(g2))) { renderView(); return; }
   if (lanca && !eraLanca && !g.aoVivo.carregando) AV.aviso = 'Agora é você quem lança as rodadas desta partida.';
   if (!lanca && eraLanca) AV.aviso = 'Outro celular passou a lançar. Este agora só acompanha.';
   var dataAntes = g.atualizadaEm;
@@ -518,9 +543,8 @@ function acompanhar(cod) {
   escolher(g.id); S.tab = 'placar'; marcarEndereco(); renderView(); ouvir(g);
 }
 function codigoDoEndereco() {
-  var m = /[?&]ao-vivo=([^&#]+)/.exec(location.search); if (!m) return null;
-  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* segue com o endereço como está */ }
-  return codigoValido(decodeURIComponent(m[1]));
+  var m = /[?&]ao-vivo=([^&#]+)/.exec(location.search);
+  return m ? codigoValido(decodeURIComponent(m[1])) : null;
 }
 function pedidoDe(g) { var d = g.aoVivo && AV.docs[g.aoVivo.codigo]; return d && d.pedido ? d.pedido : null; }
 function pedirParaLancar(g, nome) {
@@ -565,6 +589,7 @@ function avisos() {
   var h = '';
   if (S.saveErr) h += '<p class="note warn">Não deu para salvar a última alteração. Confira a conexão; ela será enviada de novo no próximo lançamento.</p>';
   if (S.syncErr) h += '<p class="note warn">O placar salvo não está respondendo agora. Recarregue a página para tentar de novo.</p>';
+  if (!LS_OK) h += '<p class="note warn">Este navegador não está guardando as partidas (aba anônima ou navegador aberto de dentro de outro app). Para não perder nada, abra pontinho.cazangi.com direto no Chrome ou no Safari.</p>';
   if (AV.erro) h += '<p class="note warn">O placar ao vivo está sem conexão. Ele volta a atualizar sozinho quando a internet voltar.</p>';
   if (AV.aviso) h += '<div class="note rowline" role="status"><span style="flex:1;min-width:0">' + esc(AV.aviso) + '</span><button class="link" data-act="av-ok">Ok</button></div>';
   return h;
@@ -614,7 +639,8 @@ function viewPlacar(g) {
   if (g.aoVivo && !lanca) {
     h += g.aoVivo.fim
       ? '<p class="note">Quem lançava parou de compartilhar este placar. Esta é a cópia que ficou neste celular.</p>'
-      : '<p class="note">Você está acompanhando ao vivo: o placar atualiza sozinho a cada rodada lançada.</p>';
+      : '<p class="note">Você está acompanhando ao vivo: o placar atualiza sozinho a cada rodada lançada.' +
+        (AV.visto[g.aoVivo.codigo] ? '<br><span class="small muted">Conferido às ' + horaSeg(AV.visto[g.aoVivo.codigo]) + '.</span>' : '') + '</p>';
   }
   if (g.exemplo) h += S.mode === 'local'
     ? '<div class="note stack"><p>Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Ela não fica guardada e some quando você fechar o site.</p>' +
@@ -658,6 +684,7 @@ function viewPlacar(g) {
     h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
       (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') +
       (g.exemplo ? '' : '<button class="link" data-act="av-folha">' + (g.aoVivo ? 'Placar ao vivo' : 'Compartilhar ao vivo') + '</button>') + '</div>';
+    if (g.aoVivo && AV.enviado[g.aoVivo.codigo]) h += '<p class="muted small">Enviado ao vivo às ' + horaSeg(AV.enviado[g.aoVivo.codigo]) + '.</p>';
   } else {
     h += '<div class="rowline"><button class="btn primary" data-act="nova">Nova partida</button><button class="link" data-act="reabrir">Reabrir esta</button></div>';
   }
