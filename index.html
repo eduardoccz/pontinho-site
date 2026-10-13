@@ -293,7 +293,7 @@ var LS = {
 var S = { games: [], loaded: false, mode: 'loading', tab: 'inicial', gameId: null, sheet: null, draft: null, chartRound: null, confirm: null, saveErr: false, syncErr: false, filtro: { tipo: 'todas', de: '', ate: '' }, renome: '' };
 var db = null;
 var SOMENTE_LOCAL = true;
-var EXEMPLO = {"nome":"Partida de exemplo","exemplo":true,"criadaEm":"2026-10-08T19:00:00.000Z","encerradaEm":null,"atualizadaEm":"2026-10-08T19:00:00.000Z","jogadores":[{"id":"j1","nome":"Alice","desde":0,"base":0},{"id":"j2","nome":"Bob","desde":0,"base":0},{"id":"j3","nome":"Charlie","desde":0,"base":0},{"id":"j4","nome":"Daisy","desde":0,"base":0}],"rodadas":[{"id":"r1","bateu":"j2","em":"2026-10-08T19:05:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"7":1,"5":1},"manual":false},"j3":{"pontos":34,"cartas":{"K":1,"Q":1,"9":1},"manual":false},"j4":{"pontos":19,"cartas":{"A":1,"4":1},"manual":false}}},{"id":"r2","bateu":"j2","em":"2026-10-08T19:12:00.000Z","maos":{"j1":{"pontos":14,"cartas":{"J":1,"3":1},"manual":false},"j3":{"pontos":28,"cartas":{"JK":1,"8":1},"manual":false},"j4":{"pontos":14,"cartas":{"6":2,"2":1},"manual":false}}},{"id":"r3","bateu":"j4","em":"2026-10-08T19:20:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"10":1,"2":1},"manual":false},"j2":{"pontos":9,"cartas":{"5":1,"4":1},"manual":false},"j3":{"pontos":20,"cartas":{"K":1,"7":1},"manual":false}}},{"id":"r4","bateu":"j1","em":"2026-10-08T19:28:00.000Z","maos":{"j2":{"pontos":48,"cartas":{"JK":1,"A":1,"K":1},"manual":false},"j3":{"pontos":7,"cartas":{"4":1,"3":1},"manual":false},"j4":{"pontos":21,"cartas":{"Q":1,"9":1},"manual":false}}},{"id":"r5","bateu":"j1","em":"2026-10-08T19:35:00.000Z","maos":{"j2":{"pontos":36,"cartas":{"K":1,"Q":1,"J":1},"manual":false},"j3":{"pontos":5,"cartas":{"3":1,"2":1},"manual":false},"j4":{"pontos":20,"cartas":{"8":1,"7":1,"5":1},"manual":false}}},{"id":"r6","bateu":"j1","em":"2026-10-08T19:43:00.000Z","maos":{"j2":{"pontos":25,"cartas":{"A":1,"10":1},"manual":false},"j3":{"pontos":6,"cartas":{"6":1},"manual":false},"j4":{"pontos":24,"cartas":{"J":1,"9":1,"4":1},"manual":false}}},{"id":"r7","bateu":"j3","em":"2026-10-08T19:50:00.000Z","maos":{"j1":{"pontos":17,"cartas":{"9":1,"8":1},"manual":false},"j2":{"pontos":22,"cartas":{"Q":1,"7":1,"3":1},"manual":false},"j4":{"pontos":30,"cartas":{"A":2},"manual":false}}},{"id":"r8","bateu":"j3","em":"2026-10-08T19:58:00.000Z","maos":{"j1":{"pontos":18,"cartas":{"K":1,"5":1},"manual":false},"j2":{"pontos":24,"cartas":{"10":2,"4":1},"manual":false},"j4":{"pontos":9,"cartas":{"7":1,"2":1},"manual":false}}}],"id":"exemplo"};
+var EXEMPLO = {"nome":"Partida de exemplo","exemplo":true,"primeiroDeu":"j1","criadaEm":"2026-10-08T19:00:00.000Z","encerradaEm":null,"atualizadaEm":"2026-10-08T19:00:00.000Z","jogadores":[{"id":"j1","nome":"Alice","desde":0,"base":0},{"id":"j2","nome":"Bob","desde":0,"base":0},{"id":"j3","nome":"Charlie","desde":0,"base":0},{"id":"j4","nome":"Daisy","desde":0,"base":0}],"rodadas":[{"id":"r1","deu":"j1","bateu":"j2","em":"2026-10-08T19:05:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"7":1,"5":1},"manual":false},"j3":{"pontos":34,"cartas":{"K":1,"Q":1,"9":1},"manual":false},"j4":{"pontos":19,"cartas":{"A":1,"4":1},"manual":false}}},{"id":"r2","deu":"j2","bateu":"j2","em":"2026-10-08T19:12:00.000Z","maos":{"j1":{"pontos":14,"cartas":{"J":1,"3":1},"manual":false},"j3":{"pontos":28,"cartas":{"JK":1,"8":1},"manual":false},"j4":{"pontos":14,"cartas":{"6":2,"2":1},"manual":false}}},{"id":"r3","deu":"j3","bateu":"j4","em":"2026-10-08T19:20:00.000Z","maos":{"j1":{"pontos":12,"cartas":{"10":1,"2":1},"manual":false},"j2":{"pontos":9,"cartas":{"5":1,"4":1},"manual":false},"j3":{"pontos":20,"cartas":{"K":1,"7":1},"manual":false}}},{"id":"r4","deu":"j4","bateu":"j1","em":"2026-10-08T19:28:00.000Z","maos":{"j2":{"pontos":48,"cartas":{"JK":1,"A":1,"K":1},"manual":false},"j3":{"pontos":7,"cartas":{"4":1,"3":1},"manual":false},"j4":{"pontos":21,"cartas":{"Q":1,"9":1},"manual":false}}},{"id":"r5","deu":"j1","bateu":"j1","em":"2026-10-08T19:35:00.000Z","maos":{"j2":{"pontos":36,"cartas":{"K":1,"Q":1,"J":1},"manual":false},"j3":{"pontos":5,"cartas":{"3":1,"2":1},"manual":false},"j4":{"pontos":20,"cartas":{"8":1,"7":1,"5":1},"manual":false}}},{"id":"r6","deu":"j2","bateu":"j1","em":"2026-10-08T19:43:00.000Z","maos":{"j2":{"pontos":25,"cartas":{"A":1,"10":1},"manual":false},"j3":{"pontos":6,"cartas":{"6":1},"manual":false},"j4":{"pontos":24,"cartas":{"J":1,"9":1,"4":1},"manual":false}}},{"id":"r7","deu":"j3","bateu":"j3","em":"2026-10-08T19:50:00.000Z","maos":{"j1":{"pontos":17,"cartas":{"9":1,"8":1},"manual":false},"j2":{"pontos":22,"cartas":{"Q":1,"7":1,"3":1},"manual":false},"j4":{"pontos":30,"cartas":{"A":2},"manual":false}}},{"id":"r8","deu":"j4","bateu":"j3","em":"2026-10-08T19:58:00.000Z","maos":{"j1":{"pontos":18,"cartas":{"K":1,"5":1},"manual":false},"j2":{"pontos":24,"cartas":{"10":2,"4":1},"manual":false},"j4":{"pontos":9,"cartas":{"7":1,"2":1},"manual":false}}}],"id":"exemplo"};
 
 function ordenadas() { return S.games.slice().sort(function (a, b) { return String(b.criadaEm).localeCompare(String(a.criadaEm)); }); }
 function cur() {
@@ -303,6 +303,20 @@ function cur() {
   return o.find(function (x) { return !x.encerradaEm && !x.exemplo; }) || o.find(function (x) { return !x.exemplo; }) || o[0] || null;
 }
 function ativosEm(g, idx) { return g.jogadores.filter(function (j) { return (j.desde || 0) <= idx; }); }
+/* quem dá as cartas: passa para a direita, na ordem da mesa cadastrada */
+function proximoNaMesa(g, id, idx) {
+  var J = g.jogadores, i = J.findIndex(function (j) { return j.id === id; });
+  for (var k = 1; k <= J.length; k++) { var j = J[(i + k) % J.length]; if ((j.desde || 0) <= idx) return j.id; }
+  return null;
+}
+function quemDa(g, idx) {
+  var rd = g.rodadas[idx];
+  if (rd && rd.deu) return rd.deu;
+  if (idx === 0) return g.primeiroDeu || null;
+  var antes = quemDa(g, idx - 1);
+  return antes ? proximoNaMesa(g, antes, idx) : null;
+}
+function nomeDe(g, id) { var j = g.jogadores.find(function (x) { return x.id === id; }); return j ? j.nome : ''; }
 function pontosDaMao(m) {
   if (!m) return 0;
   if (m.manual !== '' && m.manual != null) { var n = Math.floor(Number(m.manual)); return n > 0 ? n : 0; }
@@ -451,11 +465,13 @@ function viewPlacar(g) {
     var venc = st.ordem.filter(function (p) { return p.posAtual === 1; }).map(function (p) { return p.nome; });
     h += '<p class="note"><strong>' + esc(lista(venc)) + '</strong> ' + (venc.length > 1 ? 'ganharam' : 'ganhou') + ' com ' + plural(st.ordem[0].total, 'ponto', 'pontos') + '.</p>';
   }
+  var da = g.encerradaEm ? null : quemDa(g, st.R);
   h += '</section><ol class="rank" aria-label="Placar: quem tem menos pontos está na frente">';
   st.ordem.forEach(function (p) {
     var meta = plural(p.batidas, 'batida', 'batidas');
     if (p.ult === 'bateu') meta += ' · bateu na última'; else if (p.ult != null) meta += ' · +' + p.ult + ' na última';
     if (p.desde > 0) meta += ' · entrou na rodada ' + (p.desde + 1);
+    if (p.id === da) meta += ' · dá as cartas';
     h += '<li class="' + (st.R && p.posAtual === 1 ? 'lead' : '') + '"><span class="pos">' + ord(p.posAtual) + '</span><span class="dot" style="background:' + cor(p.i) + '"></span>' +
       '<span class="who"><span class="nome">' + esc(p.nome) + '</span><span class="meta">' + meta + '</span></span>' +
       '<span class="pts">' + p.total + '<small>' + (p.total === 1 ? 'ponto' : 'pontos') + '</small></span></li>';
@@ -464,6 +480,7 @@ function viewPlacar(g) {
   if (!st.R) h += '<p class="muted">Todo mundo começa com zero. Quando alguém bater, toque em Lançar rodada.</p>';
   h += '<section class="stack">';
   if (!g.encerradaEm) {
+    if (da) h += '<p class="note"><strong>' + esc(nomeDe(g, da)) + '</strong> dá as cartas na rodada ' + (st.R + 1) + '.</p>';
     h += '<button class="btn primary wide" data-act="rodada">Lançar rodada ' + (st.R + 1) + '</button>';
     h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
       (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') + '</div>';
@@ -483,13 +500,13 @@ function viewRodadas(g) {
     h += '<tr><td><button class="edit-rod" data-act="editar" data-idx="' + r + '" aria-label="Corrigir a rodada ' + (r + 1) + '">' + (r + 1) + '</button></td>';
     st.P.forEach(function (p) {
       var v = p.ptsRod[r];
-      h += '<td>' + (v == null ? '<span class="muted">–</span>' : v === 'bateu' ? '<span class="bateu">bateu</span>' : v) + '</td>';
+      h += '<td>' + (v == null ? '<span class="muted">–</span>' : v === 'bateu' ? '<span class="bateu">bateu</span>' : v) + (rd.deu === p.id ? '<span class="deu">deu</span>' : '') + '</td>';
     });
     h += '</tr>';
   });
   h += '</tbody><tfoot><tr><th scope="row">Total</th>';
   st.P.forEach(function (p) { h += '<td>' + p.total + '</td>'; });
-  h += '</tr></tfoot></table></div><p class="muted small">Toque no número de uma rodada para corrigir ou apagar o lançamento.</p>';
+  h += '</tr></tfoot></table></div><p class="muted small">Embaixo dos pontos, “deu” marca quem deu as cartas. Toque no número de uma rodada para corrigir ou apagar o lançamento.</p>';
   return h;
 }
 function viewStats(g) {
@@ -651,7 +668,7 @@ function desenhar() {
   box.innerHTML = s + '</svg>';
   var rd = g.rodadas[sel], quem = st.P.find(function (pl) { return pl.id === rd.bateu; });
   var linhas = st.P.filter(function (pl) { return pl.pos[sel] != null; }).sort(function (a, b) { return a.pos[sel] - b.pos[sel] || a.i - b.i; });
-  var h = '<p><strong>Rodada ' + (sel + 1) + ' de ' + R + '</strong>' + (quem ? ' · bateu: ' + esc(quem.nome) : '') + '</p><ul class="readout">';
+  var h = '<p><strong>Rodada ' + (sel + 1) + ' de ' + R + '</strong>' + (nomeDe(g, rd.deu) ? ' · deu: ' + esc(nomeDe(g, rd.deu)) : '') + (quem ? ' · bateu: ' + esc(quem.nome) : '') + '</p><ul class="readout">';
   linhas.forEach(function (pl) {
     h += '<li><span class="dot" style="background:' + cor(pl.i) + '"></span><span>' + ord(pl.pos[sel]) + '</span><span class="rn">' + esc(pl.nome) + '</span><span class="rv">' + pl.cum[sel] + '</span></li>';
   });
@@ -704,7 +721,7 @@ function resumoTexto(g) {
   L.push('', 'RODADA A RODADA (pontos acumulados)');
   g.rodadas.forEach(function (rd, r) {
     var quem = st.P.find(function (p) { return p.id === rd.bateu; });
-    L.push((r + 1) + '. bateu ' + (quem ? quem.nome : '?') + ' · ' + st.P.filter(function (p) { return p.cum[r] != null; }).map(function (p) { return p.nome + ' ' + p.cum[r]; }).join(', '));
+    L.push((r + 1) + '. ' + (nomeDe(g, rd.deu) ? 'deu ' + nomeDe(g, rd.deu) + ' · ' : '') + 'bateu ' + (quem ? quem.nome : '?') + ' · ' + st.P.filter(function (p) { return p.cum[r] != null; }).map(function (p) { return p.nome + ' ' + p.cum[r]; }).join(', '));
   });
   return L.join('\n');
 }
@@ -719,12 +736,12 @@ function planilhaCSV(g) {
   st.ordem.forEach(function (p) { linha([p.nome, p.batidas, p.seq, p.lider, p.pior, mediaTxt(p)]); });
   L.push(''); linha(['DESTAQUES']);
   destaques(st).forEach(function (d) { linha(d); });
-  L.push(''); linha(['PONTOS DA MÃO EM CADA RODADA']); linha(['Rodada', 'Bateu'].concat(nomes));
+  L.push(''); linha(['PONTOS DA MÃO EM CADA RODADA']); linha(['Rodada', 'Deu', 'Bateu'].concat(nomes));
   g.rodadas.forEach(function (rd, r) {
     var quem = st.P.find(function (p) { return p.id === rd.bateu; });
-    linha([r + 1, quem ? quem.nome : ''].concat(st.P.map(function (p) { var v = p.ptsRod[r]; return v == null ? '' : v === 'bateu' ? 0 : v; })));
+    linha([r + 1, nomeDe(g, rd.deu), quem ? quem.nome : ''].concat(st.P.map(function (p) { var v = p.ptsRod[r]; return v == null ? '' : v === 'bateu' ? 0 : v; })));
   });
-  linha(['Total', ''].concat(st.P.map(function (p) { return p.total; })));
+  linha(['Total', '', ''].concat(st.P.map(function (p) { return p.total; })));
   L.push(''); linha(['PONTOS ACUMULADOS']); linha(['Rodada'].concat(nomes));
   g.rodadas.forEach(function (rd, r) { linha([r + 1].concat(st.P.map(function (p) { return p.cum[r] == null ? '' : p.cum[r]; }))); });
   L.push(''); linha(['CARTAS QUE SOBRARAM NA MÃO']); linha(['Rodada', 'Hora', 'Bateu', 'Jogador', 'Cartas', 'Pontos']);
@@ -905,7 +922,7 @@ function pintarPartida(ctx, g, semCartas) {
       titulo('Cartas que sobraram na mão', 'rodada por rodada');
       g.rodadas.forEach(function (rd, r) {
         var quem = st.P.find(function (p) { return p.id === rd.bateu; }), hora = horaCurta(rd.em), partes = [];
-        y += 40; txt('Rodada ' + (r + 1) + (hora ? ' · ' + hora : '') + ' · bateu ' + (quem ? quem.nome : '?'), P, y, fB(24, true));
+        y += 40; txt('Rodada ' + (r + 1) + (hora ? ' · ' + hora : '') + (nomeDe(g, rd.deu) ? ' · deu ' + nomeDe(g, rd.deu) : '') + ' · bateu ' + (quem ? quem.nome : '?'), P, y, fB(24, true));
         st.P.forEach(function (p) {
           if (p.ptsRod[r] == null || p.id === rd.bateu) return;
           if (partes.length) partes.push(['·', fB(23), IMG.muted]);
@@ -955,7 +972,7 @@ function folhaExportar(g, d) {
 /* ---------- folhas: rodada, nova partida, novo jogador ---------- */
 function abrirRodada(idx) {
   var g = cur(); if (!g) return;
-  var editando = idx != null, i = editando ? idx : g.rodadas.length, d = { tipo: 'rodada', idx: i, editando: editando, bateu: null, maos: {}, aberto: null, id: null, em: null };
+  var editando = idx != null, i = editando ? idx : g.rodadas.length, d = { tipo: 'rodada', idx: i, editando: editando, deu: quemDa(g, i), bateu: null, maos: {}, aberto: null, id: null, em: null };
   ativosEm(g, i).forEach(function (j) { d.maos[j.id] = { cartas: {}, manual: '' }; });
   if (editando) {
     var rd = g.rodadas[i]; d.bateu = rd.bateu; d.id = rd.id; d.em = rd.em;
@@ -974,6 +991,9 @@ function rodadaValida(g, d) {
 function folhaRodada(g, d) {
   var act = ativosEm(g, d.idx);
   var h = '<div class="sheet-head"><h2>' + (d.editando ? 'Corrigir rodada ' : 'Rodada ') + (d.idx + 1) + '</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>';
+  h += '<section class="stack"><h3 id="q-deu">Quem deu as cartas?</h3><div class="chips" role="group" aria-labelledby="q-deu">';
+  act.forEach(function (j) { h += '<button class="chip sm" id="dc-' + esc(j.id) + '" data-act="deu" data-id="' + esc(j.id) + '" aria-pressed="' + (d.deu === j.id) + '">' + esc(j.nome) + '</button>'; });
+  h += '</div></section>';
   h += '<section class="stack"><h3 id="q-bateu">Quem bateu?</h3><div class="chips" role="group" aria-labelledby="q-bateu">';
   act.forEach(function (j) { h += '<button class="chip" id="bt-' + esc(j.id) + '" data-act="bateu" data-id="' + esc(j.id) + '" aria-pressed="' + (d.bateu === j.id) + '">' + esc(j.nome) + '</button>'; });
   h += '</div></section>';
@@ -1015,18 +1035,22 @@ function folhaRodada(g, d) {
 function folhaNova(d) {
   var h = '<div class="sheet-head"><h2>Nova partida</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
     '<div class="field"><label for="np-nome">Nome da partida</label><input type="text" id="np-nome" data-in="np-nome" maxlength="40" value="' + esc(d.nome) + '"></div>' +
-    '<section class="stack"><h3>Quem está na mesa</h3><p class="muted small">Coloque os nomes na ordem em que as pessoas estão sentadas.</p>';
+    '<section class="stack"><h3>Quem está na mesa</h3><p class="muted small">Coloque os nomes na ordem em que as pessoas estão sentadas, no sentido em que a vez passa (para a direita). As cartas também passam nessa ordem.</p>';
   d.nomes.forEach(function (n, i) {
     h += '<div class="inline"><input type="text" id="np-j' + i + '" data-in="np-jog" data-i="' + i + '" maxlength="24" placeholder="Jogador ' + (i + 1) + '" aria-label="Nome do jogador ' + (i + 1) + '" value="' + esc(n) + '">' +
       (d.nomes.length > 2 ? '<button class="icon-btn" data-act="np-tirar" data-i="' + i + '" aria-label="Tirar o jogador ' + (i + 1) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>' : '') + '</div>';
   });
   if (d.nomes.length < MAX_JOGADORES) h += '<div><button class="btn" data-act="np-mais">Mais um jogador</button></div>';
-  h += '</section><div class="sheet-foot"><p class="muted small" id="np-aviso">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="np-criar">Começar a partida</button></div>';
+  h += '</section><section class="stack"><h3 id="q-primeiro">Quem dá as cartas primeiro?</h3><div class="chips" role="group" aria-labelledby="q-primeiro">';
+  d.nomes.forEach(function (n, i) {
+    h += '<button class="chip sm" id="np-d' + i + '" data-act="np-primeiro" data-i="' + i + '" aria-pressed="' + (d.primeiro === i) + '">' + esc(n.trim() || 'Jogador ' + (i + 1)) + '</button>';
+  });
+  h += '</div></section><div class="sheet-foot"><p class="muted small" id="np-aviso">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="np-criar">Começar a partida</button></div>';
   return h;
 }
 function folhaJogador(g, d) {
   return '<div class="sheet-head"><h2>Chegou mais alguém</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
-    '<p>Quem chega agora entra a partir da rodada ' + (g.rodadas.length + 1) + '.</p>' +
+    '<p>Quem chega agora entra a partir da rodada ' + (g.rodadas.length + 1) + ' e senta no fim da ordem da mesa, depois de ' + esc(g.jogadores[g.jogadores.length - 1].nome) + '.</p>' +
     '<div class="field"><label for="nj-nome">Nome</label><input type="text" id="nj-nome" data-in="nj-nome" maxlength="24" value="' + esc(d.nome) + '"></div>' +
     '<div class="field"><label for="nj-base">Entra com quantos pontos?</label><input type="number" inputmode="numeric" min="0" step="1" id="nj-base" data-in="nj-base" value="' + esc(d.base) + '"></div>' +
     '<div class="sheet-foot"><p class="muted small">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="nj-criar">Colocar na mesa</button></div>';
@@ -1056,15 +1080,22 @@ function acao(a, t) {
     case 'nova': {
       var ult = ordenadas().find(function (x) { return !x.exemplo; });
       var nomes = ult ? ult.jogadores.map(function (j) { return j.nome; }) : ['', '', '', ''];
-      S.draft = { tipo: 'nova', nome: 'Partida de ' + dataCurta(new Date().toISOString()), nomes: nomes, erro: '' }; renderSheet('np-j0'); break;
+      S.draft = { tipo: 'nova', nome: 'Partida de ' + dataCurta(new Date().toISOString()), nomes: nomes, primeiro: 0, erro: '' }; renderSheet('np-j0'); break;
     }
     case 'np-mais': d.nomes.push(''); renderSheet('np-j' + (d.nomes.length - 1)); break;
-    case 'np-tirar': d.nomes.splice(Number(t.getAttribute('data-i')), 1); renderSheet(); break;
+    case 'np-tirar': {
+      var ti = Number(t.getAttribute('data-i')); d.nomes.splice(ti, 1);
+      if (d.primeiro === ti) d.primeiro = 0; else if (d.primeiro > ti) d.primeiro--;
+      renderSheet(); break;
+    }
+    case 'np-primeiro': d.primeiro = Number(t.getAttribute('data-i')); renderSheet('np-d' + d.primeiro); break;
     case 'np-criar': {
       var limpos = d.nomes.map(function (n) { return n.trim(); }).filter(Boolean);
       if (limpos.length < 2) { d.erro = 'Coloque o nome de pelo menos dois jogadores.'; renderSheet(); break; }
+      var antesDoPrimeiro = d.nomes.slice(0, d.primeiro).filter(function (n) { return n.trim(); }).length;
+      var primeiroIdx = (d.nomes[d.primeiro] || '').trim() ? antesDoPrimeiro : 0;
       var novo = { id: uid('p'), nome: d.nome.trim() || 'Partida de ' + dataCurta(new Date().toISOString()), criadaEm: new Date().toISOString(), encerradaEm: null,
-        jogadores: limpos.map(function (n, i) { return { id: 'j' + (i + 1), nome: n, desde: 0, base: 0 }; }), rodadas: [] };
+        jogadores: limpos.map(function (n, i) { return { id: 'j' + (i + 1), nome: n, desde: 0, base: 0 }; }), primeiroDeu: 'j' + (primeiroIdx + 1), rodadas: [] };
       if (S.mode === 'local') S.games = S.games.filter(function (x) { return !x.exemplo; });
       escolher(novo.id); S.tab = 'placar'; marcarEndereco(); S.draft = null; renderSheet(); commit(novo); break;
     }
@@ -1084,6 +1115,7 @@ function acao(a, t) {
       var prim = ativosEm(g, d.idx).find(function (j) { return j.id !== id && !pontosDaMao(d.maos[j.id]); });
       d.aberto = prim ? prim.id : null; renderSheet('bt-' + id); break;
     }
+    case 'deu': d.deu = id; renderSheet('dc-' + id); break;
     case 'abrir-mao': d.aberto = d.aberto === id ? null : id; renderSheet('hd-' + id); break;
     case 'prox-mao': {
       var outros = ativosEm(g, d.idx).filter(function (j) { return j.id !== d.bateu; });
@@ -1099,7 +1131,7 @@ function acao(a, t) {
     }
     case 'salvar-rodada': {
       if (!rodadaValida(g, d)) break;
-      var rd = { id: d.id || uid('r'), bateu: d.bateu, maos: {}, em: d.em || new Date().toISOString() };
+      var rd = { id: d.id || uid('r'), deu: d.deu || null, bateu: d.bateu, maos: {}, em: d.em || new Date().toISOString() };
       ativosEm(g, d.idx).forEach(function (j) {
         if (j.id === d.bateu) return;
         var mm = d.maos[j.id], man = mm.manual !== '';
@@ -1190,7 +1222,10 @@ function aoDigitar(ev) {
   if (tipo === 'renomear') { S.renome = t.value; return; }
   if (!tipo || !d) return;
   if (tipo === 'np-nome') d.nome = t.value;
-  else if (tipo === 'np-jog') d.nomes[Number(t.getAttribute('data-i'))] = t.value;
+  else if (tipo === 'np-jog') {
+    var ni = Number(t.getAttribute('data-i')), chip = document.getElementById('np-d' + ni); d.nomes[ni] = t.value;
+    if (chip) chip.textContent = t.value.trim() || 'Jogador ' + (ni + 1);
+  }
   else if (tipo === 'nj-nome') d.nome = t.value;
   else if (tipo === 'nj-base') d.base = t.value;
   else if (tipo === 'manual') {
