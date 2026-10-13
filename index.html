@@ -74,6 +74,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--body); font-
 * { box-sizing: border-box; }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
+/* tocar rápido duas vezes (ex.: dois 7 seguidos) não dá zoom; o zoom com dois dedos continua valendo */
+html, body, main, .sheet, button, a, input, label { touch-action: manipulation; }
 :focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
 h1, h2, h3, p { margin: 0; }
 h2 { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.2; text-wrap: balance; }
