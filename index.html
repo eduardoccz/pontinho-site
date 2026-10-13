@@ -292,6 +292,8 @@ var CARTAS = [
 ].concat([10, 9, 8, 7, 6, 5, 4, 3, 2].map(function (n) { return { k: String(n), r: String(n), v: n }; }));
 var VALOR = {}; CARTAS.forEach(function (c) { VALOR[c.k] = c.v; });
 var MAX_JOGADORES = 10;
+/* trocada pela publicação (deploy.yml) pelo commit publicado; 'dev' no computador */
+var VERSAO = 'dev';
 var STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.9 6.6 7.1.7-5.4 4.8 1.6 7-6.2-3.7-6.2 3.7 1.6-7L2 9.3l7.1-.7z"></path></svg>';
 
 /* ---------- utilidades ---------- */
@@ -435,7 +437,7 @@ var FB_CONFIG = { apiKey: 'AIzaSyDD_y6H-zMnQb8x0mPl_eeAq5sMd5gxHVw', authDomain:
   storageBucket: 'pontinho-6d554.firebasestorage.app', messagingSenderId: '611348197932', appId: '1:611348197932:web:f42461e1081092635e5789' };
 var FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, visto: {}, enviado: {}, assistindo: {}, erro: false, aviso: '' };
+var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, visto: {}, enviado: {}, assistindo: {}, sinalDado: {}, ultimoSinal: 0, erro: false, aviso: '' };
 var LETRAS_COD = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function carregarScript(src) {
   return new Promise(function (ok, erro) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
@@ -485,6 +487,7 @@ function buscarAoVivo() {
 var ASSISTINDO_MS = 90000;
 function sinalAssistindo() {
   if (!AV.fs || document.visibilityState !== 'visible') return;
+  AV.ultimoSinal = Date.now();
   S.games.forEach(function (g) {
     if (!g.aoVivo || g.aoVivo.lanca || g.aoVivo.fim || g.aoVivo.carregando) return;
     docAV(g.aoVivo.codigo).collection('assistindo').doc(AV.uid).set({ visto: agoraFB(), nome: g.aoVivo.quem || null }).catch(function () { /* sem sinal desta vez; tenta de novo no próximo */ });
@@ -495,13 +498,17 @@ function sairAssistindo(cod) {
 }
 function ouvirAssistindo(cod) {
   if (AV.assistindo[cod]) return;
+  /* a hora que vale é a que o sinal chegou aqui, pelo relógio deste celular: assim um relógio adiantado ou
+     atrasado (deste ou de quem assiste) não tira ninguém da contagem */
   AV.assistindo[cod] = { lista: {}, parar: docAV(cod).collection('assistindo').onSnapshot(function (q) {
-    var l = {};
-    q.forEach(function (doc) {
-      var x = doc.data(), v = x.visto;
-      if (doc.id !== AV.uid) l[doc.id] = { t: v && v.toMillis ? v.toMillis() : Date.now(), nome: typeof x.nome === 'string' ? x.nome : '' };
+    var a = AV.assistindo[cod]; if (!a) return;
+    q.docChanges().forEach(function (ch) {
+      var id = ch.doc.id, x = ch.doc.data();
+      if (id === AV.uid) return;
+      if (ch.type === 'removed') delete a.lista[id];
+      else a.lista[id] = { t: Date.now(), nome: typeof x.nome === 'string' ? x.nome : '' };
     });
-    if (AV.assistindo[cod]) { AV.assistindo[cod].lista = l; renderView(); }
+    renderView();
   }, function () { /* sem a contagem; o resto do ao vivo segue */ }) };
 }
 function pararAssistindo(cod) { var a = AV.assistindo[cod]; if (a) { a.parar(); delete AV.assistindo[cod]; } }
@@ -516,16 +523,28 @@ function textoAssistindo(cod) {
   if (anon) nomes.push(anon === 1 ? (nomes.length ? '1 anônimo' : 'uma pessoa anônima') : anon + ' anônimos');
   return (q.length === 1 ? '1 acompanhando: ' : q.length + ' acompanhando: ') + lista(nomes);
 }
-var tique = 0, ultimaContagem = '';
+var ultimaContagem = '';
 setInterval(function () {
   if (document.visibilityState !== 'visible') return;
   buscarAoVivo();
-  if (tique++ % 2 === 0) sinalAssistindo();
+  /* pelo tempo desde o último sinal, e não por contagem de ciclos: quando o navegador desacelera o temporizador
+     (aba em segundo plano, economia de bateria) o sinal continua saindo a cada ciclo que rodar */
+  if (Date.now() - AV.ultimoSinal > 25000) sinalAssistindo();
   /* a contagem de quem lança cai sozinha quando alguém para de dar sinal */
   var g = cur(), c = g && g.aoVivo && g.aoVivo.lanca ? textoAssistindo(g.aoVivo.codigo) : '';
   if (c !== ultimaContagem) { ultimaContagem = c; renderView(); }
 }, 15000);
-document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { buscarAoVivo(); sinalAssistindo(); } });
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { buscarAoVivo(); sinalAssistindo(); conferirVersao(); } });
+/* O navegador guarda a página por até 10 minutos; quem está com uma versão antiga recebe o aviso para atualizar. */
+function conferirVersao() {
+  if (VERSAO === 'dev' || S.versaoNova || !window.fetch) return;
+  fetch('versao.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
+    v = v.trim();
+    if (/^[0-9a-f]{7}$/.test(v) && v !== VERSAO) { S.versaoNova = true; renderView(); }
+  }).catch(function () { /* sem internet: confere de novo depois */ });
+}
+setInterval(conferirVersao, 5 * 60000);
+setTimeout(conferirVersao, 3000);
 window.addEventListener('pagehide', function () { S.games.forEach(function (g) { if (g.aoVivo && !g.aoVivo.lanca) sairAssistindo(g.aoVivo.codigo); }); });
 function horaSeg(ms) { var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
 function ligarAoVivo(g) {
@@ -575,6 +594,8 @@ function recebeuAoVivo(cod, snap) {
   var d = snap.data(), lanca = d.dono === AV.uid, eraLanca = !!g.aoVivo.lanca;
   AV.docs[cod] = d;
   if (lanca) ouvirAssistindo(cod); else pararAssistindo(cod);
+  /* o primeiro sinal de quem assiste sai assim que o placar chega, sem esperar o próximo ciclo */
+  if (!lanca && !AV.sinalDado[cod]) { AV.sinalDado[cod] = true; setTimeout(sinalAssistindo, 0); }
   if (lanca && !eraLanca) sairAssistindo(cod);
   if (!snap.metadata.fromCache) AV.visto[cod] = Date.now();
   if (lanca && eraLanca) { renderView(); return; } /* quem lança é a fonte da partida; aqui só chegam pedidos */
@@ -584,9 +605,8 @@ function recebeuAoVivo(cod, snap) {
   if (lanca === eraLanca && !g.aoVivo.carregando && JSON.stringify(paraEnviar(g)) === JSON.stringify(paraEnviar(g2))) { renderView(); return; }
   if (lanca && !eraLanca && !g.aoVivo.carregando) AV.aviso = 'Agora é você quem lança as rodadas desta partida.';
   if (!lanca && eraLanca) AV.aviso = 'Outro celular passou a lançar. Este agora só acompanha.';
-  var dataAntes = g.atualizadaEm, chegando = g.aoVivo.carregando;
+  var dataAntes = g.atualizadaEm;
   commit(g2);
-  if (!lanca && chegando) sinalAssistindo();
   if (!lanca) { g2.atualizadaEm = (d.partida && d.partida.atualizadaEm) || dataAntes; espelho(); }
 }
 function acompanhar(cod) {
@@ -644,6 +664,7 @@ function avisos() {
   var h = '';
   if (S.saveErr) h += '<p class="note warn">Não deu para salvar a última alteração. Confira a conexão; ela será enviada de novo no próximo lançamento.</p>';
   if (S.syncErr) h += '<p class="note warn">O placar salvo não está respondendo agora. Recarregue a página para tentar de novo.</p>';
+  if (S.versaoNova) h += '<div class="note rowline" role="status"><span style="flex:1;min-width:0">Tem uma versão nova do placar.</span><button class="btn primary" data-act="versao">Atualizar</button></div>';
   if (!LS_OK) h += '<p class="note warn">Este navegador não está guardando as partidas (aba anônima ou navegador aberto de dentro de outro app). Para não perder nada, abra pontinho.cazangi.com direto no Chrome ou no Safari.</p>';
   if (AV.erro) h += '<p class="note warn">O placar ao vivo está sem conexão. Ele volta a atualizar sozinho quando a internet voltar.</p>';
   if (AV.aviso) h += '<div class="note rowline" role="status"><span style="flex:1;min-width:0">' + esc(AV.aviso) + '</span><button class="link" data-act="av-ok">Ok</button></div>';
@@ -1553,6 +1574,12 @@ function acao(a, t) {
       break;
     }
     case 'av-ok': AV.aviso = ''; renderView(); break;
+    case 'versao': {
+      /* busca a página nova antes de recarregar, para o navegador não reabrir a versão guardada */
+      t.disabled = true;
+      fetch(location.pathname, { cache: 'reload' }).catch(function () { /* recarrega assim mesmo */ }).then(function () { location.reload(); });
+      break;
+    }
     case 'av-sou': case 'av-trocar-sou': {
       if (!g || !g.aoVivo) break;
       var gs2 = clone(g);

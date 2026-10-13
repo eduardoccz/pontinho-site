@@ -27,6 +27,14 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
+      # o placar compara a própria versão com versao.txt e avisa quando há uma mais nova
+      - name: Marcar a versão
+        run: |
+          V="${GITHUB_SHA::7}"
+          sed -i "s/var VERSAO = 'dev';/var VERSAO = '$V';/" index.html
+          grep -q "var VERSAO = '$V';" index.html
+          echo "$V" > versao.txt
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
