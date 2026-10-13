@@ -324,6 +324,8 @@ function proximoNaMesa(g, id, idx) {
 function quemDa(g, idx) {
   var rd = g.rodadas[idx];
   if (rd && rd.deu) return rd.deu;
+  /* partidas começadas antes de o placar guardar quem dá: alguém escolhe no placar a partir de uma rodada */
+  if (g.deuNaRodada && g.deuNaRodada.idx === idx) return g.deuNaRodada.id;
   if (idx === 0) return g.primeiroDeu || null;
   var antes = quemDa(g, idx - 1);
   return antes ? proximoNaMesa(g, antes, idx) : null;
@@ -493,6 +495,11 @@ function viewPlacar(g) {
   h += '<section class="stack">';
   if (!g.encerradaEm) {
     if (da) h += '<p class="note"><strong>' + esc(nomeDe(g, da)) + '</strong> dá as cartas na rodada ' + (st.R + 1) + '.</p>';
+    else if (!g.exemplo) {
+      h += '<div class="note stack"><p id="q-quem-da"><strong>Quem dá as cartas na rodada ' + (st.R + 1) + '?</strong> Depois disso o placar segue a ordem da mesa.</p><div class="chips" role="group" aria-labelledby="q-quem-da">';
+      ativosEm(g, st.R).forEach(function (j) { h += '<button class="chip sm" data-act="quem-da" data-id="' + esc(j.id) + '">' + esc(j.nome) + '</button>'; });
+      h += '</div></div>';
+    }
     h += '<button class="btn primary wide" data-act="rodada">Lançar rodada ' + (st.R + 1) + '</button>';
     h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
       (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') + '</div>';
@@ -1158,6 +1165,7 @@ function acao(a, t) {
       d.aberto = prim ? prim.id : null; renderSheet('bt-' + id); break;
     }
     case 'deu': d.deu = id; renderSheet('dc-' + id); break;
+    case 'quem-da': { var gq = clone(g); gq.deuNaRodada = { idx: gq.rodadas.length, id: id }; commit(gq); break; }
     case 'abrir-mao': d.aberto = d.aberto === id ? null : id; renderSheet('hd-' + id); break;
     case 'prox-mao': {
       var outros = ativosEm(g, d.idx).filter(function (j) { return j.id !== d.bateu; });
