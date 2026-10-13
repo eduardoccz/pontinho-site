@@ -800,8 +800,10 @@ function descMao(m) {
   if (m.manual || !cs.length) return m.pontos + ' (total digitado)';
   return cs.map(function (c) { return (c.k === 'JK' ? 'coringa' : c.r) + (m.cartas[c.k] > 1 ? '×' + m.cartas[c.k] : ''); }).join(', ') + ' = ' + m.pontos;
 }
-function pintarPartida(ctx, g, semCartas) {
+/* quebras: onde a imagem pode ser cortada em páginas sem partir uma linha ao meio */
+function pintarPartida(ctx, g, semCartas, quebras) {
   var W = IMG.W, P = IMG.P, CW = W - 2 * P, st = stats(g), y = P;
+  function marca() { if (quebras) quebras.push(y); }
   function txt(s, x, yy, fonte, c, al) { ctx.font = fonte; ctx.fillStyle = c || IMG.ink; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, yy); }
   function corta(s, fonte, maxW) { ctx.font = fonte; if (ctx.measureText(s).width <= maxW) return s; var t = s; while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; }
   function quebra(partes, x, yy, maxW, lh) {
@@ -824,7 +826,7 @@ function pintarPartida(ctx, g, semCartas) {
     if (k === 'C') { [[12, 7], [6.6, 13.6], [17.4, 13.6]].forEach(function (o) { ctx.beginPath(); ctx.arc(o[0], o[1], 4.6, 0, Math.PI * 2); ctx.fill(); }); }
     ctx.fill(new Path2D(NAIPES[k])); ctx.restore();
   }
-  function titulo(s, sub) { y += 62; txt(s, P, y, fD(34)); if (sub) { ctx.font = fD(34); txt(sub, P + ctx.measureText(s).width + 16, y, fB(23), IMG.muted); } y += 22; }
+  function titulo(s, sub) { marca(); y += 62; txt(s, P, y, fD(34)); if (sub) { ctx.font = fD(34); txt(sub, P + ctx.measureText(s).width + 16, y, fB(23), IMG.muted); } y += 22; }
 
   ctx.fillStyle = IMG.bg; ctx.fillRect(0, 0, W, ctx.canvas.height);
   txt('Pontinho', P, y + 52, fD(64));
@@ -841,7 +843,7 @@ function pintarPartida(ctx, g, semCartas) {
     txt(ord(p.posAtual), P + 20, b, fD(34)); ponto(P + 118, b - 11, 10, corImg(p.i));
     txt(corta(p.nome, fB(32, true), CW - 330), P + 142, b, fB(32, true));
     txt(String(p.total), P + CW - 20, b + 4, fD(46), IMG.ink, 'right');
-    y += 74;
+    y += 74; marca();
   });
   if (st.R) {
     titulo('Quantas vezes cada um bateu', 'em ' + plural(st.R, 'rodada', 'rodadas'));
@@ -852,11 +854,11 @@ function pintarPartida(ctx, g, semCartas) {
       ctx.fillStyle = IMG.muted; ctx.fillRect(x0 - 2, y + 2, 2, 42);
       if (w > 0) { ctx.beginPath(); ctx.moveTo(x0, y + 9); ctx.arcTo(x0 + w, y + 9, x0 + w, y + 37, 7); ctx.arcTo(x0 + w, y + 37, x0, y + 37, 7); ctx.lineTo(x0, y + 37); ctx.closePath(); ctx.fillStyle = IMG.green; ctx.fill(); }
       txt(String(p.batidas), x0 + w + 14, y + 35, fD(32));
-      y += 52;
+      y += 52; marca();
     });
 
     titulo('Destaques');
-    destaques(st).forEach(function (d) { y += 36; y = quebra([[d[0] + ':', fB(26, true), IMG.ink], [d[1], fB(26), IMG.ink]], P, y, CW, 36); y += 4; });
+    destaques(st).forEach(function (d) { y += 36; y = quebra([[d[0] + ':', fB(26, true), IMG.ink], [d[1], fB(26), IMG.ink]], P, y, CW, 36); y += 4; marca(); });
 
     titulo('Pontos a cada rodada', 'quem está mais embaixo está ganhando');
     var R = st.R, top = y + 14, left = P + 70, right = 200, ph = 420, pw = CW - 70 - right;
@@ -882,7 +884,7 @@ function pintarPartida(ctx, g, semCartas) {
       if (Math.abs(l.y - l.y0) > 4) { ctx.beginPath(); ctx.moveTo(X(R) + 13, l.y0); ctx.lineTo(X(R) + 28, l.y); ctx.lineWidth = 2; ctx.strokeStyle = IMG.muted; ctx.stroke(); }
       txt(corta(l.nome, fB(24), right - 44), X(R) + 34, l.y + 8, fB(24));
     });
-    y = top + ph + 44;
+    y = top + ph + 44; marca();
 
     titulo('Cada jogador');
     var cab = [['Batidas', ''], ['Maior', 'sequência'], ['Rodadas', 'na frente'], ['Maior', 'mão'], ['Média por', 'rodada']], nw = 300, cw = (CW - nw) / 5;
@@ -892,7 +894,7 @@ function pintarPartida(ctx, g, semCartas) {
     st.ordem.forEach(function (p) {
       ponto(P + 18, y + 26, 9, corImg(p.i)); txt(corta(p.nome, fB(26, true), nw - 50), P + 38, y + 35, fB(26, true));
       [p.batidas, p.seq, p.lider, p.pior, mediaTxt(p)].forEach(function (val, i) { txt(String(val), P + nw + (i + 1) * cw - 8, y + 35, fB(26), IMG.ink, 'right'); });
-      y += 52; regua(y, IMG.line, 1);
+      y += 52; regua(y, IMG.line, 1); marca();
     });
 
     titulo('Rodadas', 'pontos que sobraram na mão');
@@ -908,12 +910,12 @@ function pintarPartida(ctx, g, semCartas) {
         else if (val === 'bateu') txt('bateu', xr, y + 30, fB(22, true), IMG.green, 'right');
         else txt(String(val), xr, y + 30, fB(24), IMG.ink, 'right');
       });
-      y += 42; regua(y, IMG.line, 1);
+      y += 42; regua(y, IMG.line, 1); marca();
     });
     regua(y, IMG.ink, 2);
     txt('Total', P + 8, y + 36, fB(24, true));
     st.P.forEach(function (p, i) { txt(String(p.total), P + c0 + (i + 1) * cw2 - 8, y + 36, fD(26), IMG.ink, 'right'); });
-    y += 48;
+    y += 48; marca();
 
     titulo('Acumulado', 'total de cada um ao fim da rodada');
     txt('Rodada', P + 8, y + 30, fB(20, true), IMG.muted);
@@ -925,7 +927,7 @@ function pintarPartida(ctx, g, semCartas) {
         var xr = P + c0 + (i + 1) * cw2 - 8;
         if (p.cum[r] == null) txt('–', xr, y + 30, fB(24), IMG.muted, 'right'); else txt(String(p.cum[r]), xr, y + 30, fB(24), IMG.ink, 'right');
       });
-      y += 42; regua(y, IMG.line, 1);
+      y += 42; regua(y, IMG.line, 1); marca();
     });
     var tarde = st.P.filter(function (p) { return p.desde > 0; });
     tarde.forEach(function (p) { y += 34; txt(p.nome + ' entrou na rodada ' + (p.desde + 1) + ' com ' + plural(p.base, 'ponto', 'pontos') + '.', P, y, fB(22), IMG.muted); });
@@ -940,7 +942,7 @@ function pintarPartida(ctx, g, semCartas) {
           if (partes.length) partes.push(['·', fB(23), IMG.muted]);
           partes.push([p.nome + ':', fB(23, true), IMG.ink]); partes.push([descMao(rd.maos && rd.maos[p.id]), fB(23), IMG.ink]);
         });
-        y += 34; y = quebra(partes, P, y, CW, 32); y += 14; regua(y, IMG.line, 1);
+        y += 34; y = quebra(partes, P, y, CW, 32); y += 14; regua(y, IMG.line, 1); marca();
       });
     } else { y += 40; txt('As cartas de cada rodada não couberam na imagem; elas estão na planilha (Outros formatos).', P, y, fB(22), IMG.muted); }
   }
@@ -956,26 +958,52 @@ function gerarImagem(g) {
       new Promise(function (r) { setTimeout(r, 1500); })
     ]);
   }
+  /* Uma tira comprida é reduzida pelos apps de mensagem até ficar ilegível. Por isso a partida sai em páginas
+     no formato da tela do celular (9:16), desenhadas com o dobro de pixels e cortadas só entre uma linha e outra. */
+  var ESCALA = 2, ALTURA = 1920, TOPO = 40, RODAPE = 64;
   return fontes.then(function () {
     var m = document.createElement('canvas'); m.width = IMG.W; m.height = 10;
-    var h = Math.ceil(pintarPartida(m.getContext('2d'), g, false)), curta = h > 15000;
-    if (curta) h = Math.ceil(pintarPartida(m.getContext('2d'), g, true));
-    var c = document.createElement('canvas'); c.width = IMG.W; c.height = h;
-    pintarPartida(c.getContext('2d'), g, curta);
-    return new Promise(function (ok, erro) { c.toBlob(function (b) { if (b) ok(b); else erro(new Error('sem imagem')); }, 'image/png'); });
+    var q = [], h = Math.ceil(pintarPartida(m.getContext('2d'), g, false, q)), curta = h > 15000;
+    if (curta) { q = []; h = Math.ceil(pintarPartida(m.getContext('2d'), g, true, q)); }
+    var cortes = [], ini = 0;
+    while (ini < h) {
+      var cabe = ini + ALTURA - (ini ? TOPO : 0) - RODAPE, fim = h;
+      if (h > cabe) { fim = cabe; q.forEach(function (b) { if (b > ini + 200 && b <= cabe) fim = b; }); }
+      cortes.push([ini, fim]); ini = fim;
+    }
+    return Promise.all(cortes.map(function (ct, n) {
+      var topo = n ? TOPO : 0, alt = topo + (ct[1] - ct[0]) + (cortes.length > 1 ? RODAPE : 0);
+      var c = document.createElement('canvas'); c.width = IMG.W * ESCALA; c.height = alt * ESCALA;
+      var ctx = c.getContext('2d');
+      ctx.scale(ESCALA, ESCALA); ctx.fillStyle = IMG.bg; ctx.fillRect(0, 0, IMG.W, alt);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, topo, IMG.W, ct[1] - ct[0]); ctx.clip(); ctx.translate(0, topo - ct[0]);
+      pintarPartida(ctx, g, curta); ctx.restore();
+      if (cortes.length > 1) {
+        ctx.fillStyle = IMG.line; ctx.fillRect(IMG.P, alt - RODAPE + 4, IMG.W - 2 * IMG.P, 2);
+        ctx.font = fB(22); ctx.fillStyle = IMG.muted; ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left'; ctx.fillText('Pontinho · ' + g.nome, IMG.P, alt - 22);
+        ctx.textAlign = 'right'; ctx.fillText((n + 1) + ' de ' + cortes.length, IMG.W - IMG.P, alt - 22);
+      }
+      return new Promise(function (ok, erro) { c.toBlob(function (b) { if (b) ok(b); else erro(new Error('sem imagem')); }, 'image/png'); });
+    }));
   });
 }
 var expAtual = null;
-function limparExp() { if (expAtual && expAtual.url) URL.revokeObjectURL(expAtual.url); expAtual = null; }
+function limparExp() { if (expAtual) expAtual.pags.forEach(function (p) { URL.revokeObjectURL(p.url); }); expAtual = null; }
+function nomePagina(g, n, total) { return nomeArquivo(g) + (total > 1 ? '-' + (n + 1) : '') + '.png'; }
 function podeCompartilhar() { return !window.claude && typeof navigator.share === 'function' && typeof navigator.canShare === 'function'; }
 function folhaExportar(g, d) {
-  var pronta = !!(expAtual && expAtual.gid === g.id), dis = pronta ? '' : ' disabled';
+  var pronta = !!(expAtual && expAtual.gid === g.id), dis = pronta ? '' : ' disabled', np = pronta ? expAtual.pags.length : 1;
+  var oQue = np > 1 ? 'imagens' : 'imagem', imgs = '';
+  if (pronta) expAtual.pags.forEach(function (p, n) {
+    imgs += '<img class="exp-img" src="' + p.url + '" alt="' + (np > 1 ? 'Página ' + (n + 1) + ' de ' + np + ' do' : 'Imagem com o') + ' resumo da partida ' + esc(g.nome) + '">';
+  });
   return '<div class="sheet-head"><h2>Exportar partida</h2><button class="btn quiet" data-act="fechar">Fechar</button></div>' +
-    '<p><strong>' + esc(g.nome) + '</strong><br><span class="muted small">Uma imagem com todos os dados da partida: placar, batidas, destaques, gráfico de pontos, tabela de cada jogador, os pontos e o acumulado de cada rodada e as cartas que sobraram na mão.</span></p>' +
-    '<div class="rowline"><button class="btn primary" id="exp-baixar" data-act="exp-img"' + dis + '>Baixar imagem</button>' +
-    (podeCompartilhar() ? '<button class="btn" id="exp-comp" data-act="exp-compartilhar"' + dis + '>Compartilhar imagem</button>' : '') + '</div>' +
+    '<p><strong>' + esc(g.nome) + '</strong><br><span class="muted small">' + (np > 1 ? np + ' imagens no formato da tela do celular' : 'Uma imagem') + ' com todos os dados da partida: placar, batidas, destaques, gráfico de pontos, tabela de cada jogador, os pontos e o acumulado de cada rodada e as cartas que sobraram na mão.</span></p>' +
+    '<div class="rowline"><button class="btn primary" id="exp-baixar" data-act="exp-img"' + dis + '>Baixar ' + oQue + '</button>' +
+    (podeCompartilhar() ? '<button class="btn" id="exp-comp" data-act="exp-compartilhar"' + dis + '>Compartilhar ' + oQue + '</button>' : '') + '</div>' +
     '<p class="small" id="exp-msg" role="status">' + esc(d.msg || (pronta ? '' : 'Gerando a imagem…')) + '</p>' +
-    '<img id="exp-img" class="exp-img" alt="Imagem com o resumo da partida ' + esc(g.nome) + '"' + (pronta ? ' src="' + expAtual.url + '"' : ' hidden') + '>' +
+    '<div class="stack">' + imgs + '</div>' +
     '<details class="outros"><summary>Outros formatos</summary><div class="stack">' +
     '<div class="rowline"><button class="btn" data-act="exp-csv">Baixar planilha (CSV)</button><button class="btn" data-act="exp-copiar">Copiar resumo em texto</button></div>' +
     '<div class="field"><label for="exp-texto">Resumo em texto</label><textarea id="exp-texto" readonly rows="12">' + esc(resumoTexto(g)) + '</textarea></div></div></details>';
@@ -1162,19 +1190,21 @@ function acao(a, t) {
     case 'exportar': {
       var ge = id ? S.games.find(function (x) { return x.id === id; }) : g; if (!ge) break;
       limparExp(); S.draft = { tipo: 'exportar', gid: ge.id, msg: '' }; renderSheet();
-      gerarImagem(ge).then(function (blob) {
+      gerarImagem(ge).then(function (blobs) {
         if (!S.draft || S.draft.tipo !== 'exportar' || S.draft.gid !== ge.id) return;
-        limparExp(); expAtual = { gid: ge.id, blob: blob, url: URL.createObjectURL(blob) };
-        var im = $('#exp-img'); if (im) { im.src = expAtual.url; im.hidden = false; }
-        ['#exp-baixar', '#exp-comp'].forEach(function (q) { var bt = $(q); if (bt) bt.disabled = false; });
-        avisarExp('');
+        limparExp(); expAtual = { gid: ge.id, pags: blobs.map(function (b) { return { blob: b, url: URL.createObjectURL(b) }; }) };
+        S.draft.msg = ''; renderSheet();
       }, function () { avisarExp('Não deu para gerar a imagem neste aparelho. Use os outros formatos abaixo.'); });
       break;
     }
     case 'exp-img': {
       var gi = S.games.find(function (x) { return x.id === d.gid; }); if (!gi || !expAtual) break;
-      baixar(nomeArquivo(gi) + '.png', expAtual.blob, 'image/png').then(function (r) {
-        avisarExp(r === 'link' ? 'Imagem enviada para os downloads do aparelho.' : 'Imagem salva.');
+      var pags = expAtual.pags, varias = pags.length > 1;
+      /* uma de cada vez: o aparelho pede para salvar cada arquivo */
+      pags.reduce(function (antes, p, n) {
+        return antes.then(function (r) { return baixar(nomePagina(gi, n, pags.length), p.blob, 'image/png').then(function (r2) { return r2 || r; }); });
+      }, Promise.resolve(null)).then(function (r) {
+        avisarExp(r === 'link' ? (varias ? 'Imagens enviadas' : 'Imagem enviada') + ' para os downloads do aparelho.' : varias ? 'Imagens salvas.' : 'Imagem salva.');
       }, function (e) {
         var c = e && e.code;
         avisarExp(c === 'declined' ? 'Download cancelado.' : c === 'rate_limited' ? 'Já existe um pedido de download aberto. Responda a ele e tente de novo.' : 'Não deu para baixar aqui. Tente tocar e segurar a imagem para salvar.');
@@ -1183,9 +1213,9 @@ function acao(a, t) {
     }
     case 'exp-compartilhar': {
       var gs = S.games.find(function (x) { return x.id === d.gid; }); if (!gs || !expAtual) break;
-      var arq = new File([expAtual.blob], nomeArquivo(gs) + '.png', { type: 'image/png' });
-      if (navigator.canShare({ files: [arq] })) navigator.share({ files: [arq], title: gs.nome }).catch(function () { /* a pessoa fechou o compartilhamento */ });
-      else avisarExp('Este aparelho não compartilha arquivos por aqui. Use Baixar imagem.');
+      var arqs = expAtual.pags.map(function (p, n) { return new File([p.blob], nomePagina(gs, n, expAtual.pags.length), { type: 'image/png' }); });
+      if (navigator.canShare({ files: arqs })) navigator.share({ files: arqs, title: gs.nome }).catch(function () { /* a pessoa fechou o compartilhamento */ });
+      else avisarExp('Este aparelho não compartilha arquivos por aqui. Use Baixar.');
       break;
     }
     case 'exp-copiar': {
