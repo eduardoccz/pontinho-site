@@ -435,7 +435,7 @@ var FB_CONFIG = { apiKey: 'AIzaSyDD_y6H-zMnQb8x0mPl_eeAq5sMd5gxHVw', authDomain:
   storageBucket: 'pontinho-6d554.firebasestorage.app', messagingSenderId: '611348197932', appId: '1:611348197932:web:f42461e1081092635e5789' };
 var FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
 var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, visto: {}, enviado: {}, erro: false, aviso: '' };
+var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, visto: {}, enviado: {}, assistindo: {}, erro: false, aviso: '' };
 var LETRAS_COD = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function carregarScript(src) {
   return new Promise(function (ok, erro) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
@@ -480,8 +480,53 @@ function buscarAoVivo() {
     docAV(cod).get({ source: 'server' }).then(function (snap) { recebeuAoVivo(cod, snap); }, function () { marcarErroAV(true); });
   });
 }
-setInterval(function () { if (document.visibilityState === 'visible') buscarAoVivo(); }, 15000);
-document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') buscarAoVivo(); });
+/* Quem está assistindo: cada celular que acompanha grava ao-vivo/{código}/assistindo/{uid} a cada 30 s enquanto
+   a tela está aberta, e apaga ao sair. Quem lança conta os que deram sinal no último minuto e meio. */
+var ASSISTINDO_MS = 90000;
+function sinalAssistindo() {
+  if (!AV.fs || document.visibilityState !== 'visible') return;
+  S.games.forEach(function (g) {
+    if (!g.aoVivo || g.aoVivo.lanca || g.aoVivo.fim || g.aoVivo.carregando) return;
+    docAV(g.aoVivo.codigo).collection('assistindo').doc(AV.uid).set({ visto: agoraFB(), nome: g.aoVivo.quem || null }).catch(function () { /* sem sinal desta vez; tenta de novo no próximo */ });
+  });
+}
+function sairAssistindo(cod) {
+  if (AV.fs && AV.uid) docAV(cod).collection('assistindo').doc(AV.uid).delete().catch(function () { /* some sozinho depois de um minuto e meio */ });
+}
+function ouvirAssistindo(cod) {
+  if (AV.assistindo[cod]) return;
+  AV.assistindo[cod] = { lista: {}, parar: docAV(cod).collection('assistindo').onSnapshot(function (q) {
+    var l = {};
+    q.forEach(function (doc) {
+      var x = doc.data(), v = x.visto;
+      if (doc.id !== AV.uid) l[doc.id] = { t: v && v.toMillis ? v.toMillis() : Date.now(), nome: typeof x.nome === 'string' ? x.nome : '' };
+    });
+    if (AV.assistindo[cod]) { AV.assistindo[cod].lista = l; renderView(); }
+  }, function () { /* sem a contagem; o resto do ao vivo segue */ }) };
+}
+function pararAssistindo(cod) { var a = AV.assistindo[cod]; if (a) { a.parar(); delete AV.assistindo[cod]; } }
+function quemAssiste(cod) {
+  var a = AV.assistindo[cod], agora = Date.now(); if (!a) return [];
+  return Object.keys(a.lista).map(function (u) { return a.lista[u]; }).filter(function (x) { return agora - x.t < ASSISTINDO_MS; });
+}
+function textoAssistindo(cod) {
+  var q = quemAssiste(cod); if (!q.length) return 'Ninguém acompanhando agora';
+  var nomes = q.filter(function (x) { return x.nome; }).map(function (x) { return x.nome; }).sort(function (a, b) { return a.localeCompare(b); });
+  var anon = q.length - nomes.length;
+  if (anon) nomes.push(anon === 1 ? (nomes.length ? '1 anônimo' : 'uma pessoa anônima') : anon + ' anônimos');
+  return (q.length === 1 ? '1 acompanhando: ' : q.length + ' acompanhando: ') + lista(nomes);
+}
+var tique = 0, ultimaContagem = '';
+setInterval(function () {
+  if (document.visibilityState !== 'visible') return;
+  buscarAoVivo();
+  if (tique++ % 2 === 0) sinalAssistindo();
+  /* a contagem de quem lança cai sozinha quando alguém para de dar sinal */
+  var g = cur(), c = g && g.aoVivo && g.aoVivo.lanca ? textoAssistindo(g.aoVivo.codigo) : '';
+  if (c !== ultimaContagem) { ultimaContagem = c; renderView(); }
+}, 15000);
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { buscarAoVivo(); sinalAssistindo(); } });
+window.addEventListener('pagehide', function () { S.games.forEach(function (g) { if (g.aoVivo && !g.aoVivo.lanca) sairAssistindo(g.aoVivo.codigo); }); });
 function horaSeg(ms) { var d = new Date(ms); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
 function ligarAoVivo(g) {
   return aoVivoPronto().then(function () {
@@ -493,7 +538,13 @@ function ligarAoVivo(g) {
 }
 function pararAoVivo(g) {
   var cod = g.aoVivo.codigo;
-  return aoVivoPronto().then(function () { return docAV(cod).delete(); }).then(function () {
+  return aoVivoPronto().then(function () {
+    /* apaga também os sinais de quem estava assistindo */
+    return docAV(cod).collection('assistindo').get().then(function (q) {
+      return Promise.all(q.docs.map(function (doc) { return doc.ref.delete(); }));
+    }).catch(function () { /* sobra algum sinal antigo; não atrapalha */ }).then(function () { return docAV(cod).delete(); });
+  }).then(function () {
+    pararAssistindo(cod);
     if (typeof AV.ouvindo[cod] === 'function') AV.ouvindo[cod]();
     delete AV.ouvindo[cod]; delete AV.docs[cod];
     var g2 = clone(g); delete g2.aoVivo; commit(g2);
@@ -523,15 +574,19 @@ function recebeuAoVivo(cod, snap) {
   }
   var d = snap.data(), lanca = d.dono === AV.uid, eraLanca = !!g.aoVivo.lanca;
   AV.docs[cod] = d;
+  if (lanca) ouvirAssistindo(cod); else pararAssistindo(cod);
+  if (lanca && !eraLanca) sairAssistindo(cod);
   if (!snap.metadata.fromCache) AV.visto[cod] = Date.now();
   if (lanca && eraLanca) { renderView(); return; } /* quem lança é a fonte da partida; aqui só chegam pedidos */
   var g2 = clone(d.partida || {}); g2.id = g.id; g2.jogadores = g2.jogadores || []; g2.rodadas = g2.rodadas || [];
   g2.aoVivo = { codigo: cod, lanca: lanca };
+  if (g.aoVivo.quem != null) g2.aoVivo.quem = g.aoVivo.quem;
   if (lanca === eraLanca && !g.aoVivo.carregando && JSON.stringify(paraEnviar(g)) === JSON.stringify(paraEnviar(g2))) { renderView(); return; }
   if (lanca && !eraLanca && !g.aoVivo.carregando) AV.aviso = 'Agora é você quem lança as rodadas desta partida.';
   if (!lanca && eraLanca) AV.aviso = 'Outro celular passou a lançar. Este agora só acompanha.';
-  var dataAntes = g.atualizadaEm;
+  var dataAntes = g.atualizadaEm, chegando = g.aoVivo.carregando;
   commit(g2);
+  if (!lanca && chegando) sinalAssistindo();
   if (!lanca) { g2.atualizadaEm = (d.partida && d.partida.atualizadaEm) || dataAntes; espelho(); }
 }
 function acompanhar(cod) {
@@ -641,6 +696,15 @@ function viewPlacar(g) {
       ? '<p class="note">Quem lançava parou de compartilhar este placar. Esta é a cópia que ficou neste celular.</p>'
       : '<p class="note">Você está acompanhando ao vivo: o placar atualiza sozinho a cada rodada lançada.' +
         (AV.visto[g.aoVivo.codigo] ? '<br><span class="small muted">Conferido às ' + horaSeg(AV.visto[g.aoVivo.codigo]) + '.</span>' : '') + '</p>';
+    if (!g.aoVivo.fim) {
+      if (g.aoVivo.quem == null) {
+        h += '<div class="stack" style="gap:6px"><p class="small" id="q-sou"><strong>Quem está olhando?</strong> Quem lança vê quem está acompanhando.</p><div class="chips" role="group" aria-labelledby="q-sou">';
+        g.jogadores.forEach(function (j) { h += '<button class="chip sm" data-act="av-sou" data-nome="' + esc(j.nome) + '">' + esc(j.nome) + '</button>'; });
+        h += '<button class="chip sm" data-act="av-sou" data-nome="">Anônimo</button></div></div>';
+      } else {
+        h += '<p class="small muted">Quem lança vê você como <strong>' + (g.aoVivo.quem ? esc(g.aoVivo.quem) : 'anônimo') + '</strong>. <button class="link" style="min-height:0;padding:0" data-act="av-trocar-sou">Trocar</button></p>';
+      }
+    }
   }
   if (g.exemplo) h += S.mode === 'local'
     ? '<div class="note stack"><p>Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Ela não fica guardada e some quando você fechar o site.</p>' +
@@ -684,7 +748,7 @@ function viewPlacar(g) {
     h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
       (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') +
       (g.exemplo ? '' : '<button class="link" data-act="av-folha">' + (g.aoVivo ? 'Placar ao vivo' : 'Compartilhar ao vivo') + '</button>') + '</div>';
-    if (g.aoVivo && AV.enviado[g.aoVivo.codigo]) h += '<p class="muted small">Enviado ao vivo às ' + horaSeg(AV.enviado[g.aoVivo.codigo]) + '.</p>';
+    if (g.aoVivo) h += '<p class="muted small">' + esc(textoAssistindo(g.aoVivo.codigo)) + (AV.enviado[g.aoVivo.codigo] ? ' · enviado ao vivo às ' + horaSeg(AV.enviado[g.aoVivo.codigo]) : '') + '.</p>';
   } else {
     h += '<div class="rowline"><button class="btn primary" data-act="nova">Nova partida</button><button class="link" data-act="reabrir">Reabrir esta</button></div>';
   }
@@ -1305,6 +1369,7 @@ function folhaAoVivo(g, d) {
     '<div class="rowline">' + (podeCompartilhar() ? '<button class="btn" data-act="av-enviar">Enviar link</button>' : '') + '<button class="btn" data-act="av-copiar">Copiar link</button></div>' +
     '<p class="small" id="av-msg" role="status">' + esc(d.msg || '') + '</p>';
   if (g.aoVivo.lanca) {
+    h += '<p><strong>' + esc(textoAssistindo(cod)) + '.</strong></p>';
     h += '<p class="muted small">Para outra pessoa lançar, ela abre o placar ao vivo e toca em “Quero lançar por este celular”. O pedido aparece no seu placar para você confirmar.</p>';
     h += S.confirm === 'av-parar'
       ? '<div class="rowline"><span>Parar de compartilhar? Quem está acompanhando fica com a cópia até aqui.</span><button class="btn danger" data-act="av-parar-sim">Parar</button><button class="btn quiet" data-act="cancelar-conf-folha">Continuar</button></div>'
@@ -1488,6 +1553,12 @@ function acao(a, t) {
       break;
     }
     case 'av-ok': AV.aviso = ''; renderView(); break;
+    case 'av-sou': case 'av-trocar-sou': {
+      if (!g || !g.aoVivo) break;
+      var gs2 = clone(g);
+      if (a === 'av-sou') gs2.aoVivo.quem = String(t.getAttribute('data-nome') || '').slice(0, 30); else delete gs2.aoVivo.quem;
+      commit(gs2); sinalAssistindo(); break;
+    }
     case 'av-folha': S.draft = { tipo: 'aovivo', msg: '' }; S.confirm = null; renderSheet(); break;
     case 'av-ligar': {
       if (!g || g.aoVivo) break;

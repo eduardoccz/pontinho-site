@@ -26,6 +26,17 @@ service cloud.firestore {
       );
 
       allow delete: if logado() && resource.data.dono == request.auth.uid;
+
+      // quem está assistindo: cada celular só grava e apaga o próprio sinal; só quem lança vê a lista
+      match /assistindo/{celular} {
+        function dono() { return get(/databases/$(database)/documents/ao-vivo/$(codigo)).data.dono == request.auth.uid; }
+        allow read: if logado() && dono();
+        allow create, update: if logado() && request.auth.uid == celular
+          && request.resource.data.keys().hasOnly(['visto', 'nome'])
+          && (request.resource.data.nome == null || (request.resource.data.nome is string && request.resource.data.nome.size() <= 30))
+          && exists(/databases/$(database)/documents/ao-vivo/$(codigo));
+        allow delete: if logado() && (request.auth.uid == celular || dono());
+      }
     }
   }
 }
