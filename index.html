@@ -153,9 +153,19 @@ th, td { padding: 10px 12px; text-align: right; border-top: 1px solid var(--line
 thead th { border-top: 0; font-size: 14px; vertical-align: bottom; }
 th:first-child, td:first-child { text-align: left; }
 tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
-.th-nome { display: inline-flex; align-items: center; gap: 6px; max-width: 110px; white-space: normal; overflow-wrap: anywhere; text-align: right; }
+.th-nome { display: inline-flex; align-items: center; gap: 6px; max-width: 110px; white-space: normal; overflow-wrap: break-word; text-align: right; }
 .bateu { font-weight: 700; color: var(--green); }
 .edit-rod { min-width: 44px; min-height: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font-weight: 700; }
+.scroll-x th:first-child, .scroll-x td:first-child { position: sticky; left: 0; z-index: 1; background: var(--surface); }
+.bloco .deu { display: block; font-size: 12px; line-height: 1.2; color: var(--muted); }
+@media (max-width: 559px) {
+  .bloco.apertado th, .bloco.apertado td { padding: 8px 4px; font-size: 15px; }
+  .bloco.apertado th:first-child, .bloco.apertado td:first-child { padding-left: 8px; }
+  .bloco.apertado .edit-rod { min-width: 40px; }
+  .bloco.apertado .bateu { font-size: 13px; }
+  .bloco.apertado th:not(:first-child), .bloco.apertado td:not(:first-child) { text-align: center; }
+  .bloco.apertado .th-nome { writing-mode: vertical-rl; transform: rotate(180deg); max-width: none; max-height: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
 
 /* Estatísticas */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
@@ -493,7 +503,8 @@ function viewRodadas(g) {
   if (!g) return semPartida();
   var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st) + '</section>';
   if (!st.R) return h + '<p class="muted">O bloco de marcação aparece aqui depois da primeira rodada, com uma linha por rodada e uma coluna por jogador.</p>';
-  h += '<div class="scroll-x"><table><thead><tr><th scope="col">Rodada</th>';
+  /* com muitos jogadores, no celular os nomes do cabeçalho ficam em pé para caber todo mundo */
+  h += '<div class="scroll-x"><table class="bloco' + (st.P.length >= 5 ? ' apertado' : '') + '"><thead><tr><th scope="col">Rodada</th>';
   st.P.forEach(function (p) { h += '<th scope="col"><span class="th-nome"><span class="dot" style="background:' + cor(p.i) + '"></span>' + esc(p.nome) + '</span></th>'; });
   h += '</tr></thead><tbody>';
   g.rodadas.forEach(function (rd, r) {
@@ -623,7 +634,8 @@ function desenhar() {
   var g = cur(); if (!g) return;
   var st = stats(g), R = st.R; if (!R) { box.innerHTML = ''; return; }
   var W = Math.max(260, Math.floor(box.clientWidth || 320));
-  var top = 14, left = 40, right = Math.round(Math.min(130, Math.max(76, W * 0.26))), bottom = 28, ph = 230;
+  var maiorNome = Math.max.apply(null, st.P.map(function (p) { return p.nome.length; }));
+  var top = 14, left = 40, right = Math.round(Math.min(150, W * 0.38, Math.max(76, maiorNome * 7.4 + 24))), bottom = 28, ph = 230;
   var pw = W - left - right, H = top + ph + bottom;
   var maxV = Math.max.apply(null, st.P.map(function (p) { return p.total; }));
   var passoY = maxV > 0 ? passoBonito(maxV) : 5, maxY = maxV > 0 ? Math.ceil(maxV / passoY) * passoY : 10;
