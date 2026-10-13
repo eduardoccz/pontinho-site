@@ -132,6 +132,11 @@ main:focus { outline: none; }
 
 .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--green-tint); color: var(--ink); white-space: nowrap; }
 .tag.ex { background: var(--red-tint); }
+.tag.vivo { background: var(--green); color: var(--on-green); }
+.qr { align-self: center; width: min(280px, 100%); aspect-ratio: 1; padding: 10px; border-radius: 14px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; text-align: center; }
+.qr svg { display: block; width: 100%; height: 100%; }
+.codigo-av { text-align: center; font-size: 18px; }
+.codigo-av strong { font-family: var(--display); font-size: 30px; letter-spacing: 0.12em; margin-left: 6px; }
 .note { padding: 12px 14px; border-radius: 12px; background: var(--green-tint); }
 .note.warn { background: var(--red-tint); }
 
@@ -400,9 +405,12 @@ function commit(g) {
     db.collection('partidas').doc(g.id).set(body).then(function () { if (S.saveErr) { S.saveErr = false; renderView(); } },
       function () { S.saveErr = true; renderView(); });
   }
+  if (g.aoVivo && g.aoVivo.lanca) enviarAoVivo(g);
   renderView();
 }
 function apagarPartida(id) {
+  var ga = S.games.find(function (x) { return x.id === id; });
+  if (ga && ga.aoVivo && typeof AV.ouvindo[ga.aoVivo.codigo] === 'function') { AV.ouvindo[ga.aoVivo.codigo](); delete AV.ouvindo[ga.aoVivo.codigo]; }
   S.games = S.games.filter(function (x) { return x.id !== id; });
   if (S.gameId === id) S.gameId = null;
   espelho();
@@ -410,6 +418,123 @@ function apagarPartida(id) {
   renderView();
 }
 function escolher(id) { S.gameId = id; S.chartRound = null; LS.set('pontinho.sel', id); }
+
+/* ---------- placar ao vivo ----------
+   Um celular lança e os outros acompanham pelo link. A partida vai para o Firebase em ao-vivo/{código}:
+   { partida, dono: celular que lança, pedido: { uid, nome } de quem pediu para lançar }.
+   As regras do Firestore (firestore.rules) garantem que só o dono muda a partida e passa a vez.
+   O Firebase só é carregado quando alguém usa o ao vivo; o resto do placar segue funcionando sem internet. */
+var FB_CONFIG = { apiKey: 'AIzaSyDD_y6H-zMnQb8x0mPl_eeAq5sMd5gxHVw', authDomain: 'pontinho-6d554.firebaseapp.com', projectId: 'pontinho-6d554',
+  storageBucket: 'pontinho-6d554.firebasestorage.app', messagingSenderId: '611348197932', appId: '1:611348197932:web:f42461e1081092635e5789' };
+var FB_SDK = 'https://www.gstatic.com/firebasejs/10.14.1/';
+var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+var AV = { pronto: null, uid: null, fs: null, ouvindo: {}, docs: {}, erro: false, aviso: '' };
+var LETRAS_COD = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function carregarScript(src) {
+  return new Promise(function (ok, erro) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = erro; document.head.appendChild(s); });
+}
+function aoVivoPronto() {
+  if (!AV.pronto) {
+    AV.pronto = carregarScript(FB_SDK + 'firebase-app-compat.js')
+      .then(function () { return Promise.all([carregarScript(FB_SDK + 'firebase-auth-compat.js'), carregarScript(FB_SDK + 'firebase-firestore-compat.js')]); })
+      .then(function () { if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG); return firebase.auth().signInAnonymously(); })
+      .then(function (cred) { AV.uid = cred.user.uid; AV.fs = firebase.firestore(); return AV; })
+      .catch(function (e) { AV.pronto = null; throw e; });
+  }
+  return AV.pronto;
+}
+function agoraFB() { return firebase.firestore.FieldValue.serverTimestamp(); }
+function docAV(cod) { return AV.fs.collection('ao-vivo').doc(cod); }
+function novoCodigo() {
+  var a = new Uint32Array(6); crypto.getRandomValues(a);
+  return Array.prototype.map.call(a, function (n) { return LETRAS_COD[n % LETRAS_COD.length]; }).join('');
+}
+function codigoValido(c) { c = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z0-9]{6}$/.test(c) ? c : null; }
+function linkAoVivo(cod) { return location.origin + location.pathname + '?ao-vivo=' + cod; }
+function podeLancar(g) { return !g.aoVivo || !!g.aoVivo.lanca; }
+function paraEnviar(g) { var b = clone(g); delete b.aoVivo; delete b.id; return b; }
+function marcarErroAV(sim) { if (AV.erro !== sim) { AV.erro = sim; renderView(); } }
+
+function enviarAoVivo(g) {
+  aoVivoPronto().then(function () {
+    return docAV(g.aoVivo.codigo).update({ partida: paraEnviar(g), atualizadoEm: agoraFB() });
+  }).then(function () { marcarErroAV(false); }, function () { marcarErroAV(true); });
+}
+function ligarAoVivo(g) {
+  return aoVivoPronto().then(function () {
+    var cod = novoCodigo();
+    return docAV(cod).set({ partida: paraEnviar(g), dono: AV.uid, pedido: null, atualizadoEm: agoraFB() }).then(function () {
+      var g2 = clone(g); g2.aoVivo = { codigo: cod, lanca: true }; commit(g2); ouvir(g2); return cod;
+    });
+  });
+}
+function pararAoVivo(g) {
+  var cod = g.aoVivo.codigo;
+  return aoVivoPronto().then(function () { return docAV(cod).delete(); }).then(function () {
+    if (typeof AV.ouvindo[cod] === 'function') AV.ouvindo[cod]();
+    delete AV.ouvindo[cod]; delete AV.docs[cod];
+    var g2 = clone(g); delete g2.aoVivo; commit(g2);
+  });
+}
+function ouvir(g) {
+  var cod = g.aoVivo.codigo;
+  if (AV.ouvindo[cod]) return;
+  AV.ouvindo[cod] = true;
+  aoVivoPronto().then(function () {
+    AV.ouvindo[cod] = docAV(cod).onSnapshot(function (snap) { recebeuAoVivo(cod, snap); }, function () { marcarErroAV(true); });
+  }, function () { AV.ouvindo[cod] = false; marcarErroAV(true); });
+}
+function recebeuAoVivo(cod, snap) {
+  var g = S.games.find(function (x) { return x.aoVivo && x.aoVivo.codigo === cod; });
+  if (!g) return;
+  AV.erro = false;
+  if (!snap.exists) {
+    delete AV.docs[cod];
+    if (g.aoVivo.carregando) {
+      S.games = S.games.filter(function (x) { return x.id !== g.id; }); if (S.gameId === g.id) S.gameId = null;
+      AV.aviso = 'Não achei o placar ao vivo ' + cod + '. Confira o código com quem está lançando.'; S.tab = 'inicial'; marcarEndereco(); espelho(); renderView();
+    } else if (!g.aoVivo.lanca) {
+      var gf = clone(g); gf.aoVivo.fim = true; commit(gf);
+    }
+    return;
+  }
+  var d = snap.data(), lanca = d.dono === AV.uid, eraLanca = !!g.aoVivo.lanca;
+  AV.docs[cod] = d;
+  if (lanca && eraLanca) { renderView(); return; } /* quem lança é a fonte da partida; aqui só chegam pedidos */
+  var g2 = clone(d.partida || {}); g2.id = g.id; g2.jogadores = g2.jogadores || []; g2.rodadas = g2.rodadas || [];
+  g2.aoVivo = { codigo: cod, lanca: lanca };
+  if (lanca && !eraLanca && !g.aoVivo.carregando) AV.aviso = 'Agora é você quem lança as rodadas desta partida.';
+  if (!lanca && eraLanca) AV.aviso = 'Outro celular passou a lançar. Este agora só acompanha.';
+  var dataAntes = g.atualizadaEm;
+  commit(g2);
+  if (!lanca) { g2.atualizadaEm = (d.partida && d.partida.atualizadaEm) || dataAntes; espelho(); }
+}
+function acompanhar(cod) {
+  var g = S.games.find(function (x) { return x.aoVivo && x.aoVivo.codigo === cod; });
+  if (!g) {
+    g = { id: 'av-' + cod, nome: 'Placar ao vivo ' + cod, criadaEm: new Date().toISOString(), encerradaEm: null, jogadores: [], rodadas: [], aoVivo: { codigo: cod, lanca: false, carregando: true } };
+    S.games.push(g); espelho();
+  }
+  escolher(g.id); S.tab = 'placar'; marcarEndereco(); renderView(); ouvir(g);
+}
+function codigoDoEndereco() {
+  var m = /[?&]ao-vivo=([^&#]+)/.exec(location.search); if (!m) return null;
+  try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* segue com o endereço como está */ }
+  return codigoValido(decodeURIComponent(m[1]));
+}
+function pedidoDe(g) { var d = g.aoVivo && AV.docs[g.aoVivo.codigo]; return d && d.pedido ? d.pedido : null; }
+function pedirParaLancar(g, nome) {
+  return aoVivoPronto().then(function () { return docAV(g.aoVivo.codigo).update({ pedido: { uid: AV.uid, nome: nome, em: Date.now() } }); });
+}
+function cancelarPedido(g) { return aoVivoPronto().then(function () { return docAV(g.aoVivo.codigo).update({ pedido: null }); }); }
+function passarVez(g, aceitar) {
+  var p = pedidoDe(g); if (!p) return Promise.resolve();
+  return aoVivoPronto().then(function () { return docAV(g.aoVivo.codigo).update(aceitar ? { dono: p.uid, pedido: null } : { pedido: null }); });
+}
+function qrSVG(texto) {
+  var q = qrcode(0, 'M'); q.addData(texto); q.make();
+  return q.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+}
 
 function iniciar() {
   S.gameId = LS.get('pontinho.sel');
@@ -428,7 +553,10 @@ function iniciar() {
     S.mode = 'local';
     /* a partida de exemplo é só demonstração: não fica guardada no aparelho */
     S.games = (LS.get('pontinho.partidas') || []).filter(function (g) { return !g.exemplo; });
-    espelho(); S.loaded = true; renderView();
+    espelho(); S.loaded = true;
+    var cod = codigoDoEndereco();
+    if (cod) acompanhar(cod); else renderView();
+    S.games.forEach(function (g) { if (g.aoVivo && !g.aoVivo.fim && !g.encerradaEm) ouvir(g); });
   });
 }
 
@@ -437,6 +565,8 @@ function avisos() {
   var h = '';
   if (S.saveErr) h += '<p class="note warn">Não deu para salvar a última alteração. Confira a conexão; ela será enviada de novo no próximo lançamento.</p>';
   if (S.syncErr) h += '<p class="note warn">O placar salvo não está respondendo agora. Recarregue a página para tentar de novo.</p>';
+  if (AV.erro) h += '<p class="note warn">O placar ao vivo está sem conexão. Ele volta a atualizar sozinho quando a internet voltar.</p>';
+  if (AV.aviso) h += '<div class="note rowline" role="status"><span style="flex:1;min-width:0">' + esc(AV.aviso) + '</span><button class="link" data-act="av-ok">Ok</button></div>';
   return h;
 }
 var ABAS = ['inicial', 'placar', 'rodadas', 'stats', 'partidas'];
@@ -454,6 +584,7 @@ function viewInicial() {
     '<h2>Placar do Pontinho</h2><p class="muted">Marque os pontos de cada rodada e acompanhe as estatísticas da partida.</p><div class="home-acoes">';
   if (aberta) h += '<button class="btn primary wide" data-act="continuar" data-id="' + esc(aberta.id) + '">Continuar a partida</button><button class="btn wide" data-act="nova">Nova partida</button>';
   else h += '<button class="btn primary wide" data-act="nova">Começar uma partida</button>';
+  h += '<button class="btn wide" data-act="av-acompanhar">Acompanhar uma partida ao vivo</button>';
   h += '<a class="btn wide" href="regras/">Ver as regras</a>';
   if (S.mode === 'local' && !o.some(function (x) { return x.exemplo; })) h += '<button class="btn quiet wide" data-act="exemplo">Ver uma partida de exemplo</button>';
   return h + '</div></section>';
@@ -468,12 +599,23 @@ function cabecalhoPartida(g, st) {
   var tags = '';
   if (g.exemplo) tags += '<span class="tag ex">Exemplo</span>';
   if (g.encerradaEm) tags += '<span class="tag">Encerrada</span>';
+  if (g.aoVivo && !g.aoVivo.fim && !g.encerradaEm) tags += '<span class="tag vivo">Ao vivo</span>';
   return '<div class="rowline"><h2>' + esc(g.nome) + '</h2>' + tags + '</div>' +
     '<p class="muted">' + (st.R ? plural(st.R, 'rodada jogada', 'rodadas jogadas') : 'Nenhuma rodada lançada') + ' · ' + plural(g.jogadores.length, 'jogador', 'jogadores') + '</p>';
 }
 function viewPlacar(g) {
   if (!g) return semPartida();
-  var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st);
+  if (g.aoVivo && g.aoVivo.carregando) return '<section class="stack"><h2>Placar ao vivo</h2><p class="muted">Abrindo o placar ' + esc(g.aoVivo.codigo) + '…</p></section>';
+  var st = stats(g), h = '<section class="stack">' + cabecalhoPartida(g, st), lanca = podeLancar(g), ped = pedidoDe(g);
+  if (g.aoVivo && g.aoVivo.lanca && ped && ped.uid !== AV.uid) {
+    h += '<div class="note stack" role="status"><p><strong>' + esc(ped.nome) + '</strong> quer lançar as rodadas pelo próprio celular. Passar a vez de lançar?</p>' +
+      '<div class="rowline"><button class="btn primary" data-act="av-passar">Passar para ' + esc(ped.nome) + '</button><button class="btn quiet" data-act="av-recusar">Agora não</button></div></div>';
+  }
+  if (g.aoVivo && !lanca) {
+    h += g.aoVivo.fim
+      ? '<p class="note">Quem lançava parou de compartilhar este placar. Esta é a cópia que ficou neste celular.</p>'
+      : '<p class="note">Você está acompanhando ao vivo: o placar atualiza sozinho a cada rodada lançada.</p>';
+  }
   if (g.exemplo) h += S.mode === 'local'
     ? '<div class="note stack"><p>Esta partida é só um exemplo, com nomes inventados, para mostrar como o placar funciona. Ela não fica guardada e some quando você fechar o site.</p>' +
       '<div class="rowline"><button class="btn primary" data-act="nova">Começar uma partida</button><button class="btn" data-act="fechar-exemplo">Fechar o exemplo</button></div></div>'
@@ -494,8 +636,17 @@ function viewPlacar(g) {
       '<span class="pts">' + p.total + '<small>' + (p.total === 1 ? 'ponto' : 'pontos') + '</small></span></li>';
   });
   h += '</ol>';
-  if (!st.R) h += '<p class="muted">Todo mundo começa com zero. Quando alguém bater, toque em Lançar rodada.</p>';
+  if (!st.R) h += '<p class="muted">Todo mundo começa com zero. ' + (lanca ? 'Quando alguém bater, toque em Lançar rodada.' : 'As rodadas aparecem aqui assim que forem lançadas.') + '</p>';
   h += '<section class="stack">';
+  if (!lanca) {
+    if (da && !g.encerradaEm) h += '<p class="note"><strong>' + esc(nomeDe(g, da)) + '</strong> dá as cartas na rodada ' + (st.R + 1) + '.</p>';
+    if (!g.aoVivo.fim && !g.encerradaEm) {
+      h += ped && ped.uid === AV.uid
+        ? '<div class="rowline"><span class="muted">Pedido enviado. Esperando quem lança confirmar no celular dele.</span><button class="link" data-act="av-cancelar-pedido">Cancelar pedido</button></div>'
+        : '<button class="btn wide" data-act="av-pedir">Quero lançar por este celular</button>';
+    }
+    return h + '<div class="rowline"><button class="link" data-act="av-folha">Mostrar o QR code do placar</button></div></section>';
+  }
   if (!g.encerradaEm) {
     if (da) h += '<p class="note"><strong>' + esc(nomeDe(g, da)) + '</strong> dá as cartas na rodada ' + (st.R + 1) + '.</p>';
     else if (!g.exemplo) {
@@ -505,7 +656,8 @@ function viewPlacar(g) {
     }
     h += '<button class="btn primary wide" data-act="rodada">Lançar rodada ' + (st.R + 1) + '</button>';
     h += '<div class="rowline">' + (g.jogadores.length < MAX_JOGADORES ? '<button class="link" data-act="jogador">Chegou mais alguém</button>' : '') +
-      (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') + '</div>';
+      (st.R ? '<button class="link" data-act="encerrar">Encerrar partida</button>' : '') +
+      (g.exemplo ? '' : '<button class="link" data-act="av-folha">' + (g.aoVivo ? 'Placar ao vivo' : 'Compartilhar ao vivo') + '</button>') + '</div>';
   } else {
     h += '<div class="rowline"><button class="btn primary" data-act="nova">Nova partida</button><button class="link" data-act="reabrir">Reabrir esta</button></div>';
   }
@@ -520,7 +672,7 @@ function viewRodadas(g) {
   st.P.forEach(function (p) { h += '<th scope="col"><span class="th-nome"><span class="dot" style="background:' + cor(p.i) + '"></span>' + esc(p.nome) + '</span></th>'; });
   h += '</tr></thead><tbody>';
   g.rodadas.forEach(function (rd, r) {
-    h += '<tr><td><button class="edit-rod" data-act="editar" data-idx="' + r + '" aria-label="Corrigir a rodada ' + (r + 1) + '">' + (r + 1) + '</button></td>';
+    h += '<tr><td>' + (podeLancar(g) ? '<button class="edit-rod" data-act="editar" data-idx="' + r + '" aria-label="Corrigir a rodada ' + (r + 1) + '">' + (r + 1) + '</button>' : '<strong>' + (r + 1) + '</strong>') + '</td>';
     st.P.forEach(function (p) {
       var v = p.ptsRod[r];
       h += '<td>' + (v == null ? '<span class="muted">–</span>' : v === 'bateu' ? '<span class="bateu">bateu</span>' : v) + (rd.deu === p.id ? '<span class="deu">deu</span>' : '') + '</td>';
@@ -529,7 +681,7 @@ function viewRodadas(g) {
   });
   h += '</tbody><tfoot><tr><th scope="row">Total</th>';
   st.P.forEach(function (p) { h += '<td>' + p.total + '</td>'; });
-  h += '</tr></tfoot></table></div><p class="muted small">Embaixo dos pontos, “deu” marca quem deu as cartas. Toque no número de uma rodada para corrigir ou apagar o lançamento.</p>';
+  h += '</tr></tfoot></table></div><p class="muted small">Embaixo dos pontos, “deu” marca quem deu as cartas.' + (podeLancar(g) ? ' Toque no número de uma rodada para corrigir ou apagar o lançamento.' : '') + '</p>';
   return h;
 }
 function viewStats(g) {
@@ -1110,18 +1262,64 @@ function folhaJogador(g, d) {
     '<div class="field"><label for="nj-base">Entra com quantos pontos?</label><input type="number" inputmode="numeric" min="0" step="1" id="nj-base" data-in="nj-base" value="' + esc(d.base) + '"></div>' +
     '<div class="sheet-foot"><p class="muted small">' + (d.erro ? esc(d.erro) : '') + '</p><button class="btn primary wide" data-act="nj-criar">Colocar na mesa</button></div>';
 }
+function folhaAoVivo(g, d) {
+  var h = '<div class="sheet-head"><h2>Placar ao vivo</h2><button class="btn quiet" data-act="fechar">Fechar</button></div>';
+  if (!g.aoVivo) {
+    return h + '<p>Os outros acompanham esta partida no próprio celular: lendo o QR code, eles veem o placar, as rodadas e as estatísticas, que atualizam sozinhos a cada rodada lançada.</p>' +
+      '<p class="muted small">Só este celular lança. Se outra pessoa quiser lançar, ela pede pelo celular dela e você confirma aqui. Precisa de internet.</p>' +
+      '<p class="small" role="status">' + esc(d.msg || '') + '</p>' +
+      '<button class="btn primary wide" data-act="av-ligar"' + (d.ocupado ? ' disabled' : '') + '>' + (d.ocupado ? 'Ligando o ao vivo…' : 'Compartilhar ao vivo') + '</button>';
+  }
+  var cod = g.aoVivo.codigo, link = linkAoVivo(cod);
+  h += '<p>' + (g.aoVivo.lanca ? 'Peça para os outros lerem o QR code com a câmera do celular.' : 'Mostre este QR code para mais alguém acompanhar.') + '</p>' +
+    '<div class="qr" id="av-qr" aria-label="QR code do placar ao vivo"><span class="muted small">Gerando o QR code…</span></div>' +
+    '<p class="codigo-av">Código <strong>' + esc(cod) + '</strong></p>' +
+    '<p class="small muted" style="overflow-wrap:anywhere">' + esc(link) + '</p>' +
+    '<div class="rowline">' + (podeCompartilhar() ? '<button class="btn" data-act="av-enviar">Enviar link</button>' : '') + '<button class="btn" data-act="av-copiar">Copiar link</button></div>' +
+    '<p class="small" id="av-msg" role="status">' + esc(d.msg || '') + '</p>';
+  if (g.aoVivo.lanca) {
+    h += '<p class="muted small">Para outra pessoa lançar, ela abre o placar ao vivo e toca em “Quero lançar por este celular”. O pedido aparece no seu placar para você confirmar.</p>';
+    h += S.confirm === 'av-parar'
+      ? '<div class="rowline"><span>Parar de compartilhar? Quem está acompanhando fica com a cópia até aqui.</span><button class="btn danger" data-act="av-parar-sim">Parar</button><button class="btn quiet" data-act="cancelar-conf-folha">Continuar</button></div>'
+      : '<div><button class="link danger-text" data-act="av-parar">Parar de compartilhar</button></div>';
+  }
+  return h;
+}
+function folhaPedir(g, d) {
+  var h = '<div class="sheet-head"><h2>Lançar por este celular</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
+    '<p>Quem está lançando agora recebe o pedido e confirma no celular dele. Depois disso, as rodadas passam a ser lançadas aqui.</p>' +
+    '<section class="stack"><h3 id="q-quem-pede">Quem é você?</h3><div class="chips" role="group" aria-labelledby="q-quem-pede">';
+  g.jogadores.forEach(function (j) { h += '<button class="chip" data-act="av-pedir-como" data-nome="' + esc(j.nome) + '">' + esc(j.nome) + '</button>'; });
+  h += '<button class="chip sm" data-act="av-pedir-como" data-nome="Outra pessoa">Outra pessoa</button></div></section>';
+  return h + '<p class="small" role="status">' + esc(d.msg || '') + '</p>';
+}
+function folhaAcompanhar(d) {
+  return '<div class="sheet-head"><h2>Acompanhar ao vivo</h2><button class="btn quiet" data-act="fechar">Cancelar</button></div>' +
+    '<p>Leia o QR code do celular de quem está lançando com a câmera, ou digite o código que aparece embaixo dele.</p>' +
+    '<div class="field"><label for="av-cod">Código do placar</label><input type="text" id="av-cod" data-in="av-cod" maxlength="8" autocapitalize="characters" autocomplete="off" spellcheck="false" value="' + esc(d.cod) + '" style="text-transform:uppercase;letter-spacing:0.15em;font-weight:700"></div>' +
+    '<div class="sheet-foot"><p class="muted small">' + esc(d.erro || '') + '</p><button class="btn primary wide" data-act="av-entrar">Acompanhar</button></div>';
+}
+function desenharQR() {
+  var box = $('#av-qr'), g = cur(); if (!box || !g || !g.aoVivo) return;
+  var link = linkAoVivo(g.aoVivo.codigo);
+  (window.qrcode ? Promise.resolve() : carregarScript(QR_LIB)).then(function () {
+    var b = $('#av-qr'); if (b) b.innerHTML = qrSVG(link);
+  }, function () { var b = $('#av-qr'); if (b) b.innerHTML = '<span class="muted small">Sem internet para gerar o QR code. Use o código abaixo.</span>'; });
+}
 function renderSheet(focoId) {
   var el = $('#sheet'), d = S.draft, g = cur();
   if (!d) { el.hidden = true; el.innerHTML = ''; return; }
   var gExp = d.tipo === 'exportar' ? S.games.find(function (x) { return x.id === d.gid; }) : null;
   if (d.tipo === 'exportar' && !gExp) { S.draft = null; el.hidden = true; el.innerHTML = ''; return; }
-  var corpo = d.tipo === 'rodada' ? folhaRodada(g, d) : d.tipo === 'nova' ? folhaNova(d) : d.tipo === 'exportar' ? folhaExportar(gExp, d) : folhaJogador(g, d);
+  var corpo = d.tipo === 'rodada' ? folhaRodada(g, d) : d.tipo === 'nova' ? folhaNova(d) : d.tipo === 'exportar' ? folhaExportar(gExp, d)
+    : d.tipo === 'aovivo' ? folhaAoVivo(g, d) : d.tipo === 'pedir' ? folhaPedir(g, d) : d.tipo === 'acompanhar' ? folhaAcompanhar(d) : folhaJogador(g, d);
   var eraOculto = el.hidden;
   el.innerHTML = '<div class="wrap" role="dialog" aria-modal="true">' + corpo + '</div>';
   el.hidden = false;
   if (eraOculto) el.scrollTop = 0;
   var f = focoId && document.getElementById(focoId);
   if (f) f.focus({ preventScroll: true });
+  if (d.tipo === 'aovivo') desenharQR();
 }
 function avisarExp(m) { var e = $('#exp-msg'); if (e) e.textContent = m; if (S.draft && S.draft.tipo === 'exportar') S.draft.msg = m; }
 function fecharFolha() { S.draft = null; S.confirm = null; limparExp(); renderSheet(); }
@@ -1129,6 +1327,8 @@ function fecharFolha() { S.draft = null; S.confirm = null; limparExp(); renderSh
 /* ---------- ações ---------- */
 function acao(a, t) {
   var g = cur(), d = S.draft, id = t.getAttribute('data-id');
+  /* quem só acompanha um placar ao vivo não lança nem corrige */
+  if (g && !podeLancar(g) && ['rodada', 'editar', 'salvar-rodada', 'apagar-rodada-sim', 'jogador', 'nj-criar', 'encerrar', 'reabrir', 'quem-da'].indexOf(a) >= 0) return;
   switch (a) {
     case 'tab': S.tab = t.getAttribute('data-tab'); S.confirm = null; marcarEndereco(); renderView(); $('#view').scrollTop = 0; break;
     case 'continuar': escolher(id); S.tab = 'placar'; marcarEndereco(); renderView(); $('#view').scrollTop = 0; break;
@@ -1260,6 +1460,49 @@ function acao(a, t) {
       });
       break;
     }
+    case 'av-ok': AV.aviso = ''; renderView(); break;
+    case 'av-folha': S.draft = { tipo: 'aovivo', msg: '' }; S.confirm = null; renderSheet(); break;
+    case 'av-ligar': {
+      if (!g || g.aoVivo) break;
+      d.ocupado = true; d.msg = ''; renderSheet();
+      ligarAoVivo(g).then(function () { if (S.draft === d) { d.ocupado = false; renderSheet(); } }, function () {
+        if (S.draft === d) { d.ocupado = false; d.msg = 'Não deu para ligar o ao vivo. Confira a internet e tente de novo.'; renderSheet(); }
+      });
+      break;
+    }
+    case 'av-enviar': {
+      navigator.share({ title: 'Placar do Pontinho ao vivo', text: 'Acompanhe o placar de ' + g.nome + ':', url: linkAoVivo(g.aoVivo.codigo) }).catch(function () { /* a pessoa fechou o compartilhamento */ });
+      break;
+    }
+    case 'av-copiar': {
+      var lk = linkAoVivo(g.aoVivo.codigo), msgAV = function (m) { d.msg = m; var e = $('#av-msg'); if (e) e.textContent = m; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lk).then(function () { msgAV('Link copiado. Cole no grupo da família.'); }, function () { msgAV('Não deu para copiar. Use o código acima.'); });
+      else msgAV('Não deu para copiar. Use o código acima.');
+      break;
+    }
+    case 'av-parar': S.confirm = 'av-parar'; renderSheet(); break;
+    case 'av-parar-sim': {
+      S.confirm = null;
+      pararAoVivo(g).then(function () { fecharFolha(); }, function () { d.msg = 'Não deu para parar agora. Confira a internet e tente de novo.'; renderSheet(); });
+      break;
+    }
+    case 'av-passar': case 'av-recusar':
+      passarVez(g, a === 'av-passar').catch(function () { AV.aviso = 'Não deu para responder ao pedido. Confira a internet e tente de novo.'; renderView(); });
+      break;
+    case 'av-pedir': S.draft = { tipo: 'pedir', msg: '' }; renderSheet(); break;
+    case 'av-pedir-como': {
+      var nmP = t.getAttribute('data-nome');
+      d.msg = 'Enviando o pedido…'; renderSheet();
+      pedirParaLancar(g, nmP).then(function () { fecharFolha(); renderView(); }, function () { if (S.draft === d) { d.msg = 'Não deu para enviar o pedido. Confira a internet e tente de novo.'; renderSheet(); } });
+      break;
+    }
+    case 'av-cancelar-pedido': cancelarPedido(g).catch(function () { marcarErroAV(true); }); break;
+    case 'av-acompanhar': S.draft = { tipo: 'acompanhar', cod: '', erro: '' }; renderSheet('av-cod'); break;
+    case 'av-entrar': {
+      var cv = codigoValido(d.cod);
+      if (!cv) { d.erro = 'O código tem 6 letras e números, como K7P2QX.'; renderSheet('av-cod'); break; }
+      S.draft = null; renderSheet(); acompanhar(cv); break;
+    }
     case 'fechar': fecharFolha(); break;
     case 'encerrar': { var g5 = clone(g); g5.encerradaEm = new Date().toISOString(); commit(g5); break; }
     case 'reabrir': { var g6 = clone(g); g6.encerradaEm = null; commit(g6); break; }
@@ -1289,7 +1532,8 @@ function aoDigitar(ev) {
   if (tipo === 'f-de' || tipo === 'f-ate') { S.filtro[tipo === 'f-de' ? 'de' : 'ate'] = t.value; var lp = $('#lista-partidas'); if (lp) lp.innerHTML = listaPartidas(); return; }
   if (tipo === 'renomear') { S.renome = t.value; return; }
   if (!tipo || !d) return;
-  if (tipo === 'np-nome') d.nome = t.value;
+  if (tipo === 'av-cod') d.cod = t.value;
+  else if (tipo === 'np-nome') d.nome = t.value;
   else if (tipo === 'np-jog') {
     var ni = Number(t.getAttribute('data-i')), chip = document.getElementById('np-d' + ni); d.nomes[ni] = t.value;
     if (chip) chip.textContent = t.value.trim() || 'Jogador ' + (ni + 1);
@@ -1312,6 +1556,7 @@ document.addEventListener('pointermove', function (ev) {
 });
 document.addEventListener('keydown', function (ev) {
   if (ev.key === 'Escape' && S.draft) fecharFolha();
+  if (ev.key === 'Enter' && ev.target.getAttribute && ev.target.getAttribute('data-in') === 'av-cod') { var be = $('[data-act="av-entrar"]'); if (be) acao('av-entrar', be); }
   if (ev.key === 'Enter' && ev.target.getAttribute && ev.target.getAttribute('data-in') === 'renomear') { var bs = $('[data-act="renomear-sim"]'); if (bs) acao('renomear-sim', bs); }
 });
 if (window.ResizeObserver) { new ResizeObserver(function () { if (S.tab === 'stats' && S.loaded) desenhar(); }).observe($('#view')); }

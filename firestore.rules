@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Regras do placar ao vivo. Cole este arquivo inteiro em Firestore > Regras > Publicar.
+// Cada partida ao vivo é um documento ao-vivo/{código}:
+//   partida: os dados da partida; dono: o celular que lança; pedido: quem pediu para lançar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ao-vivo/{codigo} {
+      function campos(d) { return d.keys().hasOnly(['partida', 'dono', 'pedido', 'atualizadoEm']); }
+      function logado() { return request.auth != null; }
+
+      // quem tem o código vê; ninguém lista as partidas dos outros
+      allow get: if true;
+
+      allow create: if logado() && campos(request.resource.data)
+        && request.resource.data.dono == request.auth.uid;
+
+      // só quem lança muda a partida e passa a vez de lançar (trocando o dono)
+      allow update: if logado() && campos(request.resource.data) && request.resource.data.dono is string && (
+        resource.data.dono == request.auth.uid
+        // quem está vendo só pode fazer ou cancelar o próprio pedido para lançar
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pedido']) && (
+              (request.resource.data.pedido != null && request.resource.data.pedido.uid == request.auth.uid)
+              || (request.resource.data.pedido == null && resource.data.pedido != null && resource.data.pedido.uid == request.auth.uid)
+           ))
+      );
+
+      allow delete: if logado() && resource.data.dono == request.auth.uid;
+    }
+  }
+}
