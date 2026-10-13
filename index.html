@@ -239,7 +239,10 @@ tfoot td, tfoot th { font-weight: 700; border-top: 2px solid var(--ink); }
 .inline { display: flex; align-items: center; gap: 8px; }
 .inline input { flex: 1; min-width: 0; }
 .icon-btn { flex: none; width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; }
-.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn.seta { width: 40px; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+@media (max-width: 359px) { .inline { gap: 4px; } .icon-btn.seta { width: 36px; } }
 .sheet-foot { display: flex; flex-direction: column; gap: 10px; }
 @media (prefers-reduced-motion: no-preference) { .btn, .chip, .cardbtn { transition: transform 0.08s; } }
 </style>
@@ -1086,7 +1089,10 @@ function folhaNova(d) {
     '<div class="field"><label for="np-nome">Nome da partida</label><input type="text" id="np-nome" data-in="np-nome" maxlength="40" value="' + esc(d.nome) + '"></div>' +
     '<section class="stack"><h3>Quem está na mesa</h3><p class="muted small">Coloque os nomes na ordem em que as pessoas estão sentadas, no sentido em que a vez passa (para a direita). As cartas também passam nessa ordem.</p>';
   d.nomes.forEach(function (n, i) {
+    var quem = esc(n.trim() || 'o jogador ' + (i + 1));
     h += '<div class="inline"><input type="text" id="np-j' + i + '" data-in="np-jog" data-i="' + i + '" maxlength="24" placeholder="Jogador ' + (i + 1) + '" aria-label="Nome do jogador ' + (i + 1) + '" value="' + esc(n) + '">' +
+      '<button class="icon-btn seta" id="np-s' + i + '" data-act="np-mover" data-i="' + i + '" data-para="-1" aria-label="Subir ' + quem + '"' + (i === 0 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></button>' +
+      '<button class="icon-btn seta" id="np-d' + i + '-baixo" data-act="np-mover" data-i="' + i + '" data-para="1" aria-label="Descer ' + quem + '"' + (i === d.nomes.length - 1 ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>' +
       (d.nomes.length > 2 ? '<button class="icon-btn" data-act="np-tirar" data-i="' + i + '" aria-label="Tirar o jogador ' + (i + 1) + '"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>' : '') + '</div>';
   });
   if (d.nomes.length < MAX_JOGADORES) h += '<div><button class="btn" data-act="np-mais">Mais um jogador</button></div>';
@@ -1136,6 +1142,16 @@ function acao(a, t) {
       var ti = Number(t.getAttribute('data-i')); d.nomes.splice(ti, 1);
       if (d.primeiro === ti) d.primeiro = 0; else if (d.primeiro > ti) d.primeiro--;
       renderSheet(); break;
+    }
+    case 'np-mover': {
+      var de = Number(t.getAttribute('data-i')), para = de + Number(t.getAttribute('data-para'));
+      if (para < 0 || para >= d.nomes.length) break;
+      var tmp = d.nomes[de]; d.nomes[de] = d.nomes[para]; d.nomes[para] = tmp;
+      if (d.primeiro === de) d.primeiro = para; else if (d.primeiro === para) d.primeiro = de;
+      /* o foco acompanha a pessoa; se ela chegou na ponta, fica na seta que ainda funciona */
+      var sobe = para < de, foco = (sobe ? 'np-s' + para : 'np-d' + para + '-baixo');
+      if ((sobe && para === 0) || (!sobe && para === d.nomes.length - 1)) foco = sobe ? 'np-d' + para + '-baixo' : 'np-s' + para;
+      renderSheet(foco); break;
     }
     case 'np-primeiro': d.primeiro = Number(t.getAttribute('data-i')); renderSheet('np-d' + d.primeiro); break;
     case 'np-criar': {
